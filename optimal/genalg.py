@@ -1,6 +1,26 @@
-#Simple Genetic Operators
+###############################################################################
+#The MIT License (MIT)
 #
-#Written by Justin Lovinger
+#Copyright (c) 2014 Justin Lovinger
+#
+#Permission is hereby granted, free of charge, to any person obtaining a copy
+#of this software and associated documentation files (the "Software"), to deal
+#in the Software without restriction, including without limitation the rights
+#to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#copies of the Software, and to permit persons to whom the Software is
+#furnished to do so, subject to the following conditions:
+#
+#The above copyright notice and this permission notice shall be included in all
+#copies or substantial portions of the Software.
+#
+#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#SOFTWARE.
+###############################################################################
 
 import random
 import copy
@@ -14,6 +34,18 @@ class GenAlg:
                  population_size=20, generations=100, mutation_chance=0.02, crossover_chance=0.7, 
                  selection_function=gaoperators.roulette_selection, crossover_function=gaoperators.one_point_crossover,
                  **kwargs):
+        """Create an object that performs genetic algorithm optimization with a given fitness function.
+
+        Args:
+            fitness_function: A function representing the problem to solve, must return a fitness value.
+            chromosome_size: The number of genes (bits) in every chromosome.
+            population_size: The number of chromosomes in every generation
+            generations: The number of generations to optimize before stopping
+            mutation_chance: the chance that a bit will be flipped during mutation
+            crossover_chance: the chance that two parents will be crossed during crossover
+            selection_function: A function that will select parents for crossover and mutation
+            crossover_function: A function that will cross two parents
+        """
         #set paramaters for users problem
         self.fitness_function = fitness_function
         self.additional_parameters = kwargs #parameters for the users fitness function
@@ -21,6 +53,8 @@ class GenAlg:
 
         #set genetic algorithm paramaters
         self.population_size = population_size
+        if self.population_size % 2 == 1: #if population size is odd
+            self.population_size += 1 #make population size even
         self.generations = generations
         self.mutation_chance = mutation_chance
         self.crossover_chance = crossover_chance
@@ -179,6 +213,7 @@ def crossover(population, crossover_chance, crossover_operator):
     return new_population
 
 if __name__ == '__main__':
+    """Example usage of this library."""
     import math
     import time
 

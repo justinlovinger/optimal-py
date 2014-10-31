@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.21005.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "GenAlg", "GenAlg\GenAlg.pyproj", "{6FD39A3A-EA74-413A-853F-8BFDA64D6F8E}"
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "optimal", "optimal\Optimal.pyproj", "{6FD39A3A-EA74-413A-853F-8BFDA64D6F8E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
