@@ -24,7 +24,7 @@
 
 """Useful functions for working with genetic algorithms."""
 
-def binary_to_int(binary_list, offset):
+def binary_to_int(binary_list, offset=0):
     """Takes a list of binary values, returns a integer representation.
 
    The maximum value is determined by the number of bits in binary_list,

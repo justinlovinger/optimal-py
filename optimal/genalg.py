@@ -176,6 +176,8 @@ def new_population(population, fitnesses, mutation_chance=0.02, crossover_chance
     prob_sum = 0.0
     probabilities = []
     for fitness in fitnesses:
+        if fitness < 0:
+            raise ValueError("Fitness cannot be negative, fitness = {}.".format(fitness))
         prob_sum += (fitness/fitness_sum)
         probabilities.append(prob_sum)
     probabilities[-1] += 0.0001 #to compensate for rounding errors
