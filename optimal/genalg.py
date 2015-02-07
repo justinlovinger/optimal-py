@@ -26,13 +26,15 @@ import random
 import copy
 
 import gaoperators
+import optimize
 
-class GenAlg:
+class GenAlg(optimize.Optimizer):
     """Peform genetic algorithm optimization with a given fitness function."""
 
-    def __init__(self, fitness_function, chromosome_size, 
-                 population_size=20, generations=100, mutation_chance=0.02, crossover_chance=0.7, 
-                 selection_function=gaoperators.roulette_selection, crossover_function=gaoperators.one_point_crossover,
+    def __init__(self, fitness_function, chromosome_size, population_size=20, 
+                 max_iterations=100, mutation_chance=0.02, crossover_chance=0.7, 
+                 selection_function=gaoperators.roulette_selection, 
+                 crossover_function=gaoperators.one_point_crossover,
                  **kwargs):
         """Create an object that performs genetic algorithm optimization with a given fitness function.
 
@@ -46,92 +48,30 @@ class GenAlg:
             selection_function: A function that will select parents for crossover and mutation
             crossover_function: A function that will cross two parents
         """
+        optimize.Optimizer.__init__(self, fitness_function, population_size, 
+                                    max_iterations, **kwargs)
+
         #set paramaters for users problem
-        self.fitness_function = fitness_function
-        self.additional_parameters = kwargs #parameters for the users fitness function
         self.chromosome_size = chromosome_size
 
         #set genetic algorithm paramaters
-        self.population_size = population_size
         if self.population_size % 2 == 1: #if population size is odd
             self.population_size += 1 #make population size even
-        self.generations = generations
         self.mutation_chance = mutation_chance
         self.crossover_chance = crossover_chance
         self.selection_function = selection_function
         self.crossover_function = crossover_function
 
-        #enable logging by default
-        self.logging = True
+        # GenAlg functions
+        self.create_initial_population = create_initial_population
+        self.new_population = new_population
 
-        #set initial values that are used internally
-        self.evaluation_runs = 0
-        self.solution_found = False
-        self.best_chromosome = None
-        self._fitness_dict = {}
+        # GenAlg function parameters
+        self.initial_pop_args = [self.chromosome_size]
+        self.new_pop_args = [self.mutation_chance, self.crossover_chance, 
+                             self.selection_function, self.crossover_function]
 
-    def run_genalg(self):
-        """Find the optimal inputs for a given fitness function.
-        
-        Returns:
-            list; A list of genes (0, 1) representing the best solution.
-        """
-        self._fitness_dict = {}
-        self.evaluation_runs = 0
-        self.solution_found = False
-
-        best_chromosome = {'chromosome': [], 'fitness': 0.0}
-        population = create_initial_population(self.chromosome_size, self.population_size)
-
-        for generation in range(self.generations):
-            fitnesses, finished = self.get_fitnesses(population)
-            if max(fitnesses) > best_chromosome['fitness']:
-                best_chromosome['fitness'] = max(fitnesses)
-                best_chromosome['chromosome'] = copy.copy(population[fitnesses.index(max(fitnesses))])
-
-            if self.logging:
-                print ('Generation: ' + str(generation))
-                print ('Avg Fitness: ' + str(sum(fitnesses)/len(fitnesses)))
-                print ('Best Fitness: ' + str(best_chromosome['fitness']))
-
-            if finished:
-                self.solution_found = True
-                break
-
-            population = new_population(population, fitnesses, self.mutation_chance, self.crossover_chance, self.selection_function, self.crossover_function)
-
-        self._fitness_dict = {}
-
-        self.best_chromosome = best_chromosome['chromosome']
-        return self.best_chromosome
-
-    def get_fitnesses(self, population):
-        """Get the fitness for every chromosome in a population."""
-        fitnesses = []
-        finished = False
-        for chromosome in population:
-            try:
-                #attempt to retrieve the fitness from the internal fitness memory
-                fitness = self._fitness_dict[str(chromosome)]
-            except KeyError:
-                #if the fitness is not remembered
-                #calculate the fitness, pass in any saved user arguments
-                fitness = self.fitness_function(chromosome, **self.additional_parameters)
-                #if the user supplied fitness function includes the "finished" flag
-                #unpack the results into the finished flag and the fitness
-                if isinstance(fitness, tuple):
-                    finished = fitness[1]
-                    fitness = fitness[0]
-                self._fitness_dict[str(chromosome)] = fitness
-                self.evaluation_runs += 1 #keep track of how many times fitness is evaluated
-
-            fitnesses.append(fitness)
-            if finished:
-                break
-
-        return fitnesses, finished
-
-def create_initial_population(chromosome_length, population_size):
+def create_initial_population(population_size, chromosome_length):
     """Create a random initial population of chromosomes.
 
     Args:
@@ -167,7 +107,7 @@ def new_population(population, fitnesses, mutation_chance=0.02, crossover_chance
     Returns:
         list; A new population of chromosomes, that should be more fit.
     """
-
+    print mutation_chance, crossover_chance
     #selection
     fitness_sum = sum(fitnesses)
     #generate probabilities
@@ -228,7 +168,7 @@ if __name__ == '__main__':
         x2 = gahelpers.binary_to_float(chromosome[16:32], -5, 5)
         return x1, x2
 
-    #the first argument must always be the chromosome.
+    #The first argument must always be the chromosome.
     #Additional arguments can optionally come after chromosome
     def get_fitness(chromosome, offset): 
         #Turn our chromosome of bits into floating point values
@@ -254,5 +194,5 @@ if __name__ == '__main__':
     #Setup and run the genetic algorithm, using our fitness function, and a chromosome size of 32
     #Additional fitness function arguments are added as keyword arguments
     my_genalg = GenAlg(get_fitness, 32, offset=0) #Yes, offset is completely pointless, but it demonstrates additional arguments
-    best_chromosome = my_genalg.run_genalg()
+    best_chromosome = my_genalg.optimize()
     print chromosome_to_inputs(best_chromosome)
