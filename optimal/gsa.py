@@ -32,7 +32,8 @@ class GSA(optimize.Optimizer):
     """Peform genetic algorithm optimization with a given fitness function."""
 
     def __init__(self, fitness_function, solution_size, lower_bounds, upper_bounds, 
-                 population_size=20, max_iterations=100, G_reduction_rate=0.75,
+                 population_size=20, max_iterations=100, 
+                 G_initial=1.0, G_reduction_rate=0.25,
                  **kwargs):
         """Create an object that performs genetic algorithm optimization with a given fitness function.
 
@@ -52,82 +53,94 @@ class GSA(optimize.Optimizer):
         self.lower_bounds = lower_bounds
         self.upper_bounds = upper_bounds
 
-        # GSA function parameters
-        self.initial_pop_args = [self.solution_size, self.lower_bounds, self.upper_bounds]
-        self.new_pop_args = []
-
         # GSA variables
-        self.G_initial = 1.0
+        self.G_initial = G_initial
         self.G_reduction_rate = G_reduction_rate
         self.velocities = [[0.0]*self.solution_size]*self.population_size
 
-    def create_initial_population(self, population_size, problem_size, 
-                                  lower_bounds, upper_bounds):
-        """Create a random initial population of floating point values.
+        # GSA function parameters
+        self.initial_pop_args = [self.solution_size, self.lower_bounds, self.upper_bounds]
+        self.new_pop_args = [self.velocities, self.G_initial, self.G_reduction_rate, 
+                             self.iteration, self.max_iterations]
 
-        Args:
-            population_size: an integer representing the number of solutions in the population.
-            problem_size: the number of values in each solution.
-            lower_bounds: a list, each value is a lower bound for the corrosponding part of the solution.
-            upper_bounds: a list, each value is a upper bound for the corrosponding part of the solution.
-
-        Returns:
-            list; A list of random solutions.
-        """
-        if len(lower_bounds) != problem_size or len(upper_bounds) != problem_size:
-            raise ValueError("Lower and upper bounds much have a length equal to the problem size.")
-
+    def initialize(self):
         # Intialize GSA variables
-        self.G = self.G_initial
         self.velocities = [[0.0]*self.solution_size]*self.population_size
 
-        # Create random population
-        population = []
+    def create_initial_population(self, *args):
+        return create_initial_population(*args)
 
-        for i in range(population_size): #for every chromosome
-            solution = []
-            for j in range(problem_size): #for every bit in the chromosome
-                solution.append(random.uniform(lower_bounds[j], upper_bounds[j])) #randomly add a 0 or a 1
-            population.append(solution) #add the chromosome to the population
+    def new_population(self, *args):
+        return new_population(*args)
 
-        return population
+def create_initial_population(population_size, solution_size, 
+                                  lower_bounds, upper_bounds):
+    """Create a random initial population of floating point values.
 
-    def new_population(self, population, fitnesses):
-        # Update the gravitational constant, and the best and worst of the population
-        # Calulate the mass and acceleration for each solution
-        # Update the velocity and position of each solution
+    Args:
+        population_size: an integer representing the number of solutions in the population.
+        problem_size: the number of values in each solution.
+        lower_bounds: a list, each value is a lower bound for the corrosponding part of the solution.
+        upper_bounds: a list, each value is a upper bound for the corrosponding part of the solution.
+
+    Returns:
+        list; A list of random solutions.
+    """
+    if len(lower_bounds) != solution_size or len(upper_bounds) != solution_size:
+        raise ValueError("Lower and upper bounds much have a length equal to the problem size.")
+
+    # Create random population
+    population = []
+
+    for i in range(population_size): #for every chromosome
+        solution = []
+        for j in range(solution_size): #for every bit in the chromosome
+            solution.append(random.uniform(lower_bounds[j], upper_bounds[j])) #randomly add a 0 or a 1
+        population.append(solution) #add the chromosome to the population
+
+    return population
+
+def new_population(population, fitnesses, velocities, 
+                    G_initial, G_reduction_rate, iteration, max_iterations):
+    # Update the gravitational constant, and the best and worst of the population
+    # Calulate the mass and acceleration for each solution
+    # Update the velocity and position of each solution
+    population_size = len(population)
+
+    G = G_gsa(G_initial, G_reduction_rate, iteration, max_iterations)
+    masses = get_masses(fitnesses)
         
-        G = get_gravitational_constant(self.G_initial, self.iteration+1, self.G_reduction_rate)
-        masses = get_masses(fitnesses)
-        
-        # Get the force on each solution
-        forces = []
-        for i in range(self.population_size):
-            force_vectors = []
-            for j in range(self.population_size):
-                if i != j:
-                    force_vectors.append(gsa_force(G, masses[i], masses[j], 
-                                                   population[i], population[j]))
-            forces.append(gsa_total_force(force_vectors))
+    # Get the force on each solution
+    forces = []
+    for i in range(population_size):
+        force_vectors = []
+        for j in range(population_size):
+            if i != j:
+                force_vectors.append(gsa_force(G, masses[i], masses[j], 
+                                                population[i], population[j]))
+        forces.append(gsa_total_force(force_vectors))
 
-        # Get the accelearation of each solution
-        accelerations = []
-        for i in range(self.population_size):
-            accelerations.append(gsa_acceleration(forces[i], masses[i]))
+    # Get the accelearation of each solution
+    accelerations = []
+    for i in range(population_size):
+        accelerations.append(gsa_acceleration(forces[i], masses[i]))
 
-        # Update the velocity of each solution
-        for i in range(self.population_size):
-            self.velocities[i] = gsa_update_velocity(self.velocities[i], accelerations[i])
+    # Update the velocity of each solution
+    for i in range(population_size):
+        velocities[i] = gsa_update_velocity(velocities[i], accelerations[i])
 
-        # Create the new population
-        new_population = []
-        for i in range(self.population_size):
-            new_population.append(gsa_update_position(population[i], self.velocities[i]))
+    # Create the new population
+    new_population = []
+    for i in range(population_size):
+        new_population.append(gsa_update_position(population[i], velocities[i]))
 
-        return new_population
+    return new_population
 
-def get_gravitational_constant(G_initial, t, G_reduction_rate):
+def G_physics(G_initial, t, G_reduction_rate):
     return G_initial*(1.0/t)**G_reduction_rate
+
+def G_gsa(G_initial, G_reduction_rate, iteration, max_iterations):
+    return G_initial*math.exp(-G_reduction_rate*iteration/float(max_iterations))
 
 def get_masses(fitnesses):
     # Obtain constants
@@ -213,7 +226,7 @@ if __name__ == '__main__':
 
     #The first argument must always be the chromosome.
     #Additional arguments can optionally come after chromosome
-    def get_fitness(solution, offset): 
+    def get_fitness(solution, offset):
         #Turn our chromosome of bits into floating point values
         x1, x2 = solution
 

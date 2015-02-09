@@ -48,6 +48,7 @@ class Optimizer:
         self.logging = True
 
         #set initial values that are used internally
+        self.iteration = 0
         self.evaluation_runs = 0
         self.best_solution = None
         self.solution_found = False
@@ -56,6 +57,9 @@ class Optimizer:
         # Parameters for algorithm specific functions
         self.initial_pop_args = []
         self.new_pop_args = []
+
+    def initialize(self):
+        pass
 
     def create_initial_population(self, *args, **kwargs):
         raise NotImplementedError("create_initial_population is not implemented.")
@@ -74,6 +78,7 @@ class Optimizer:
         self._fitness_dict = {}
 
         best_solution = {'solution': [], 'fitness': 0.0}
+        self.initialize()
         population = self.create_initial_population(self.population_size, 
                                                     *self.initial_pop_args)
 
