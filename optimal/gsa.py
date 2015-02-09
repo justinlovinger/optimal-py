@@ -26,11 +26,13 @@ import optimize
 import random
 import numpy
 
+epsilon = 0.0000001
+
 class GSA(optimize.Optimizer):
     """Peform genetic algorithm optimization with a given fitness function."""
 
     def __init__(self, fitness_function, solution_size, lower_bounds, upper_bounds, 
-                 population_size=20, max_iterations=100,
+                 population_size=20, max_iterations=100, G_reduction_rate=0.75,
                  **kwargs):
         """Create an object that performs genetic algorithm optimization with a given fitness function.
 
@@ -47,17 +49,20 @@ class GSA(optimize.Optimizer):
 
         #set paramaters for users problem
         self.solution_size = solution_size
+        self.lower_bounds = lower_bounds
+        self.upper_bounds = upper_bounds
 
         # GSA function parameters
-        self.initial_pop_args = [self.solution_size]
+        self.initial_pop_args = [self.solution_size, self.lower_bounds, self.upper_bounds]
         self.new_pop_args = []
 
         # GSA variables
         self.G_initial = 1.0
-        self.G = self.G_initial
-        self.velocities = [0.0]*solution_size
+        self.G_reduction_rate = G_reduction_rate
+        self.velocities = [[0.0]*self.solution_size]*self.population_size
 
-    def create_initial_population(self, population_size, problem_size, lower_bounds, upper_bounds):
+    def create_initial_population(self, population_size, problem_size, 
+                                  lower_bounds, upper_bounds):
         """Create a random initial population of floating point values.
 
         Args:
@@ -69,12 +74,12 @@ class GSA(optimize.Optimizer):
         Returns:
             list; A list of random solutions.
         """
-        if len(lower_bound) != problem_size or len(upper_bound) != problem_size:
+        if len(lower_bounds) != problem_size or len(upper_bounds) != problem_size:
             raise ValueError("Lower and upper bounds much have a length equal to the problem size.")
 
         # Intialize GSA variables
         self.G = self.G_initial
-        self.velocities = [0.0]*solution_size
+        self.velocities = [[0.0]*self.solution_size]*self.population_size
 
         # Create random population
         population = []
@@ -82,7 +87,7 @@ class GSA(optimize.Optimizer):
         for i in range(population_size): #for every chromosome
             solution = []
             for j in range(problem_size): #for every bit in the chromosome
-                solution.append(random.uniform(lower_bounds[j], upper_bound[j])) #randomly add a 0 or a 1
+                solution.append(random.uniform(lower_bounds[j], upper_bounds[j])) #randomly add a 0 or a 1
             population.append(solution) #add the chromosome to the population
 
         return population
@@ -92,6 +97,7 @@ class GSA(optimize.Optimizer):
         # Calulate the mass and acceleration for each solution
         # Update the velocity and position of each solution
         
+        G = get_gravitational_constant(self.G_initial, self.iteration+1, self.G_reduction_rate)
         masses = get_masses(fitnesses)
         
         # Get the force on each solution
@@ -100,7 +106,7 @@ class GSA(optimize.Optimizer):
             force_vectors = []
             for j in range(self.population_size):
                 if i != j:
-                    force_vectors.append(gsa_force(self.G, masses[i], masses[j], 
+                    force_vectors.append(gsa_force(G, masses[i], masses[j], 
                                                    population[i], population[j]))
             forces.append(gsa_total_force(force_vectors))
 
@@ -120,8 +126,29 @@ class GSA(optimize.Optimizer):
 
         return new_population
 
+def get_gravitational_constant(G_initial, t, G_reduction_rate):
+    return G_initial*(1.0/t)**G_reduction_rate
 
-epsilon = 0.0000001
+def get_masses(fitnesses):
+    # Obtain constants
+    best_fitness = max(fitnesses)
+    worst_fitness = min(fitnesses)
+    fitness_range = best_fitness-worst_fitness
+
+    # Calculate raw masses for each solution
+    m_vec = []
+    for fitness in fitnesses:
+        # Epsilon is added to prevent divide by zero errors
+        m_vec.append((fitness-worst_fitness)/fitness_range+epsilon)
+
+    # Normalize to obtain final mass for each solution
+    total_m = sum(m_vec)
+    M_vec = []
+    for m in m_vec:
+        M_vec.append(m/total_m)
+
+    return M_vec
+
 def gsa_force(G, M_i, M_j, x_i, x_j):
     """Gives the force of solution j on solution i.
     
@@ -159,12 +186,12 @@ def gsa_total_force(force_vectors):
     # For this reason we sum the dimensions individually instead of simply using vec_a+vec_b
     total_force = [0.0]*len(force_vectors[0])
     for force_vec in force_vectors:
-        for d in range(force_vec):
+        for d in range(len(force_vec)):
             total_force[d] += random.uniform(0.0, 1.0)*force_vec[d]
-    return numpy.array(total_force)
+    return total_force
 
 def gsa_acceleration(total_force, M_i):
-    return total_force/M_i
+    return numpy.divide(total_force, M_i)
 
 def gsa_update_velocity(v_i, a_i):
     """Stochastically update the velocity of solution i."""
@@ -172,28 +199,42 @@ def gsa_update_velocity(v_i, a_i):
     # The GSA algorithm specifies that velocity is randomly weighted for each dimension.
     # For this reason we sum the dimensions individually instead of simply using vec_a+vec_b
     v = []
-    for d in range(v_i):
+    for d in range(len(v_i)):
         v.append(random.uniform(0.0, 1.0)*v_i[d]+a_i[d])
     return v
 
 def gsa_update_position(x_i, v_i):
-    return numpy.add(x_i+v_i)
+    return numpy.add(x_i, v_i)
 
-def get_masses(fitnesses):
-    # Obtain constants
-    best_fitness = max(fitnesses)
-    worst_fitness = min(fitnesses)
-    fitness_range = best_fitness-worst_fitness
+if __name__ == '__main__':
+    """Example usage of this library."""
+    import math
+    import time
 
-    # Calculate raw masses for each solution
-    m_vec = []
-    for fitness in fitnesses:
-        m_vec.append((fitness-worst_fitness)/fitness_range)
+    #The first argument must always be the chromosome.
+    #Additional arguments can optionally come after chromosome
+    def get_fitness(solution, offset): 
+        #Turn our chromosome of bits into floating point values
+        x1, x2 = solution
 
-    # Normalize to obtain final mass for each solution
-    total_m = sum(m_vec)
-    M_vec = []
-    for m in m_vec:
-        M_vec.append(m/total_m)
+        #Ackley's function
+        #A common mathematical optimization problem
+        output = -20*math.exp(-0.2*math.sqrt(0.5*(x1**2+x2**2)))-math.exp(0.5*(math.cos(2*math.pi*x1)+math.cos(2*math.pi*x2)))+20+math.e
+        output += offset
 
-    return M_vec
+        #You can prematurely stop the genetic algorithm by returning True as the second return value
+        #Here, we consider the problem solved if the output is <= 0.01
+        if output <= 0.01:
+            finished = True
+        else:
+            finished = False
+
+        #Because this function is trying to minimize the output, a smaller output has a greater fitness
+        fitness = 1/output
+        return fitness, finished
+
+    #Setup and run the genetic algorithm, using our fitness function, and a chromosome size of 32
+    #Additional fitness function arguments are added as keyword arguments
+    my_gsa = GSA(get_fitness, 2, [-5.0]*2, [5.0]*2, offset=0) #Yes, offset is completely pointless, but it demonstrates additional arguments
+    best_solution = my_gsa.optimize()
+    print best_solution

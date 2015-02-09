@@ -50,7 +50,7 @@ class Optimizer:
         #set initial values that are used internally
         self.evaluation_runs = 0
         self.best_solution = None
-        self._solution_found = False
+        self.solution_found = False
         self._fitness_dict = {}
 
         # Parameters for algorithm specific functions
@@ -70,26 +70,26 @@ class Optimizer:
             list; The best solution, as it is encoded.
         """
         self.evaluation_runs = 0
+        self.solution_found = False
         self._fitness_dict = {}
-        self._solution_found = False
 
         best_solution = {'solution': [], 'fitness': 0.0}
         population = self.create_initial_population(self.population_size, 
                                                     *self.initial_pop_args)
 
-        for iteration in range(self.max_iterations):
+        for self.iteration in range(self.max_iterations):
             fitnesses, finished = self.get_fitnesses(population)
             if max(fitnesses) > best_solution['fitness']:
                 best_solution['fitness'] = max(fitnesses)
                 best_solution['solution'] = copy.copy(population[fitnesses.index(max(fitnesses))])
 
             if self.logging:
-                print ('Iteration: ' + str(iteration))
+                print ('Iteration: ' + str(self.iteration))
                 print ('Avg Fitness: ' + str(sum(fitnesses)/len(fitnesses)))
                 print ('Best Fitness: ' + str(best_solution['fitness']))
 
             if finished:
-                self._solution_found = True
+                self.solution_found = True
                 break
 
             population = self.new_population(population, fitnesses, *self.new_pop_args)
