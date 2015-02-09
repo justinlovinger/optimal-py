@@ -71,7 +71,9 @@ class GSA(optimize.Optimizer):
         return create_initial_population(*args)
 
     def new_population(self, *args):
-        return new_population(*args)
+        new_pop, new_velocities = new_population(*args)
+        self.velocities = new_velocities
+        return new_pop
 
 def create_initial_population(population_size, solution_size, 
                                   lower_bounds, upper_bounds):
@@ -126,15 +128,16 @@ def new_population(population, fitnesses, velocities,
         accelerations.append(gsa_acceleration(forces[i], masses[i]))
 
     # Update the velocity of each solution
+    new_velocities = []
     for i in range(population_size):
-        velocities[i] = gsa_update_velocity(velocities[i], accelerations[i])
+        new_velocities.append(gsa_update_velocity(velocities[i], accelerations[i]))
 
     # Create the new population
     new_population = []
     for i in range(population_size):
-        new_population.append(gsa_update_position(population[i], velocities[i]))
+        new_population.append(gsa_update_position(population[i], new_velocities[i]))
 
-    return new_population
+    return new_population, new_velocities
 
 def G_physics(G_initial, t, G_reduction_rate):
     return G_initial*(1.0/t)**G_reduction_rate
