@@ -42,7 +42,7 @@ class GenAlg(optimize.Optimizer):
             fitness_function: A function representing the problem to solve, must return a fitness value.
             chromosome_size: The number of genes (bits) in every chromosome.
             population_size: The number of chromosomes in every generation
-            generations: The number of generations to optimize before stopping
+            max_iterations: The number of iterations to optimize before stopping
             mutation_chance: the chance that a bit will be flipped during mutation
             crossover_chance: the chance that two parents will be crossed during crossover
             selection_function: A function that will select parents for crossover and mutation
@@ -62,14 +62,16 @@ class GenAlg(optimize.Optimizer):
         self.selection_function = selection_function
         self.crossover_function = crossover_function
 
-        # GenAlg functions
-        self.create_initial_population = create_initial_population
-        self.new_population = new_population
-
         # GenAlg function parameters
         self.initial_pop_args = [self.chromosome_size]
         self.new_pop_args = [self.mutation_chance, self.crossover_chance, 
                              self.selection_function, self.crossover_function]
+
+    def create_initial_population(self, *args):
+        return create_initial_population(*args)
+
+    def new_population(self, *args):
+        return new_population(*args)
 
 def create_initial_population(population_size, chromosome_length):
     """Create a random initial population of chromosomes.
@@ -91,7 +93,8 @@ def create_initial_population(population_size, chromosome_length):
 
     return population
 
-def new_population(population, fitnesses, mutation_chance=0.02, crossover_chance=0.7, selection_function='roulette', crossover_function='one_point'):
+def new_population(population, fitnesses, mutation_chance=0.02, crossover_chance=0.7, 
+                   selection_function='roulette', crossover_function='one_point'):
     """Perform all genetic algorithm operations on a population, and return a new population.
 
     population must have an even number of chromosomes.
@@ -107,7 +110,6 @@ def new_population(population, fitnesses, mutation_chance=0.02, crossover_chance
     Returns:
         list; A new population of chromosomes, that should be more fit.
     """
-    print mutation_chance, crossover_chance
     #selection
     fitness_sum = sum(fitnesses)
     #generate probabilities

@@ -57,6 +57,12 @@ class Optimizer:
         self.initial_pop_args = []
         self.new_pop_args = []
 
+    def create_initial_population(self, *args, **kwargs):
+        raise NotImplementedError("create_initial_population is not implemented.")
+
+    def new_population(self, *args, **kwargs):
+        raise NotImplementedError("new_population is not implemented.")
+
     def optimize(self):
         """Find the optimal inputs for a given fitness function.
         
