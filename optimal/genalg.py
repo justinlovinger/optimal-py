@@ -67,11 +67,13 @@ class GenAlg(optimize.Optimizer):
         self.new_pop_args = [self.mutation_chance, self.crossover_chance, 
                              self.selection_function, self.crossover_function]
 
-    def create_initial_population(self, *args):
-        return create_initial_population(*args)
+    def create_initial_population(self, population_size):
+        return create_initial_population(population_size, self.chromosome_size)
 
-    def new_population(self, *args):
-        return new_population(*args)
+    def new_population(self, population, fitnesses):
+        return new_population(population, fitnesses, 
+                              self.mutation_chance, self.crossover_chance, 
+                              self.selection_function, self.crossover_function)
 
 def create_initial_population(population_size, chromosome_length):
     """Create a random initial population of chromosomes.

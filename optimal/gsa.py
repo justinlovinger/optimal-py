@@ -33,7 +33,7 @@ class GSA(optimize.Optimizer):
 
     def __init__(self, fitness_function, solution_size, lower_bounds, upper_bounds, 
                  population_size=20, max_iterations=100, 
-                 G_initial=1.0, G_reduction_rate=0.25,
+                 G_initial=1.0, G_reduction_rate=0.5,
                  **kwargs):
         """Create an object that performs genetic algorithm optimization with a given fitness function.
 
@@ -58,20 +58,18 @@ class GSA(optimize.Optimizer):
         self.G_reduction_rate = G_reduction_rate
         self.velocities = [[0.0]*self.solution_size]*self.population_size
 
-        # GSA function parameters
-        self.initial_pop_args = [self.solution_size, self.lower_bounds, self.upper_bounds]
-        self.new_pop_args = [self.velocities, self.G_initial, self.G_reduction_rate, 
-                             self.iteration, self.max_iterations]
-
     def initialize(self):
         # Intialize GSA variables
         self.velocities = [[0.0]*self.solution_size]*self.population_size
 
-    def create_initial_population(self, *args):
-        return create_initial_population(*args)
+    def create_initial_population(self, population_size):
+        return create_initial_population(population_size, self.solution_size,
+                                         self.lower_bounds, self.upper_bounds)
 
-    def new_population(self, *args):
-        new_pop, new_velocities = new_population(*args)
+    def new_population(self, population, fitnesses):
+        new_pop, new_velocities = new_population(population, fitnesses, self.velocities,
+                                                 self.G_initial, self.G_reduction_rate,
+                                                 self.iteration, self.max_iterations)
         self.velocities = new_velocities
         return new_pop
 
@@ -108,19 +106,28 @@ def new_population(population, fitnesses, velocities,
     # Calulate the mass and acceleration for each solution
     # Update the velocity and position of each solution
     population_size = len(population)
+    solution_size = len(population[0])
 
     G = G_gsa(G_initial, G_reduction_rate, iteration, max_iterations)
     masses = get_masses(fitnesses)
         
+    # Create bundled solution with position and mass for the K best calculation
+    solutions = [{'pos': pos, 'mass': mass} for pos, mass in zip(population, masses)]
+    solutions.sort(key = lambda x: x['mass'])
+
     # Get the force on each solution
+    # Only the best K solutions apply force
+    # K linearly decreases to 1
+    K = int(population_size-(population_size-1)*(iteration/float(max_iterations)))
     forces = []
     for i in range(population_size):
         force_vectors = []
-        for j in range(population_size):
-            if i != j:
-                force_vectors.append(gsa_force(G, masses[i], masses[j], 
-                                                population[i], population[j]))
-        forces.append(gsa_total_force(force_vectors))
+        for j in range(K):
+            # If it is not the same solution
+            if population[i] != solutions[j]['pos']: #NOTE: this could use optimization
+                force_vectors.append(gsa_force(G, masses[i], solutions[j]['mass'], 
+                                                population[i], solutions[j]['pos']))
+        forces.append(gsa_total_force(force_vectors, solution_size))
 
     # Get the accelearation of each solution
     accelerations = []
@@ -187,7 +194,7 @@ def gsa_force(G, M_i, M_j, x_i, x_j):
     # Epsilon prevents divide by zero errors
     return G*(M_i*M_j)/(distance+epsilon)*position_diff
 
-def gsa_total_force(force_vectors):
+def gsa_total_force(force_vectors, vector_length):
     """Return a randomly weighted sum of the force vectors.
     
     args:
@@ -196,13 +203,14 @@ def gsa_total_force(force_vectors):
     returns:
         numpy.array; The total force on solution i.
     """
-
+    if len(force_vectors) == 0:
+        return [0.0]*vector_length
     # The GSA algorithm specifies that the total force in each dimension 
     # is a random sum of the individual forces in that dimension.
     # For this reason we sum the dimensions individually instead of simply using vec_a+vec_b
-    total_force = [0.0]*len(force_vectors[0])
+    total_force = [0.0]*vector_length
     for force_vec in force_vectors:
-        for d in range(len(force_vec)):
+        for d in range(vector_length):
             total_force[d] += random.uniform(0.0, 1.0)*force_vec[d]
     return total_force
 
@@ -220,7 +228,7 @@ def gsa_update_velocity(v_i, a_i):
     return v
 
 def gsa_update_position(x_i, v_i):
-    return numpy.add(x_i, v_i)
+    return list(numpy.add(x_i, v_i))
 
 if __name__ == '__main__':
     """Example usage of this library."""

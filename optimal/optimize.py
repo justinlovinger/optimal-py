@@ -79,8 +79,7 @@ class Optimizer:
 
         best_solution = {'solution': [], 'fitness': 0.0}
         self.initialize()
-        population = self.create_initial_population(self.population_size, 
-                                                    *self.initial_pop_args)
+        population = self.create_initial_population(self.population_size)
 
         for self.iteration in range(self.max_iterations):
             fitnesses, finished = self.get_fitnesses(population)
@@ -97,7 +96,7 @@ class Optimizer:
                 self.solution_found = True
                 break
 
-            population = self.new_population(population, fitnesses, *self.new_pop_args)
+            population = self.new_population(population, fitnesses)
 
         self._fitness_dict = {}
 
