@@ -30,20 +30,22 @@ import math
 epsilon = 0.0000001
 
 class GSA(optimize.Optimizer):
-    """Peform genetic algorithm optimization with a given fitness function."""
+    """Gravitational Search Algorithm
+    
+    Peform graviational search algorithm optimization with a given fitness function."""
 
     def __init__(self, fitness_function, solution_size, lower_bounds, upper_bounds, 
                  population_size=20, max_iterations=100, 
                  G_initial=1.0, G_reduction_rate=0.5,
                  **kwargs):
-        """Create an object that performs genetic algorithm optimization with a given fitness function.
+        """Create an object that optimizes a given fitness function with GSA.
 
         Args:
             fitness_function: A function representing the problem to solve, must return a fitness value.
-            solution_size: The number of values in each solution.
-            lower_bounds: a list, each value is a lower bound for the corrosponding part of the solution.
-            upper_bounds: a list, each value is a upper bound for the corrosponding part of the solution.
-            population_size: The number of chromosomes in every generation
+            solution_size: The number of real values in each solution.
+            lower_bounds: list, each value is a lower bound for the corrosponding part of the solution.
+            upper_bounds: list, each value is a upper bound for the corrosponding part of the solution.
+            population_size: The number of potential solutions in every generation
             max_iterations: The number of iterations to optimize before stopping
         """
         optimize.Optimizer.__init__(self, fitness_function, population_size, 

@@ -29,14 +29,16 @@ import gaoperators
 import optimize
 
 class GenAlg(optimize.Optimizer):
-    """Peform genetic algorithm optimization with a given fitness function."""
+    """Canonical Genetic Algorithm
+    
+    Peform genetic algorithm optimization with a given fitness function."""
 
     def __init__(self, fitness_function, chromosome_size, population_size=20, 
                  max_iterations=100, mutation_chance=0.02, crossover_chance=0.7, 
                  selection_function=gaoperators.roulette_selection, 
                  crossover_function=gaoperators.one_point_crossover,
                  **kwargs):
-        """Create an object that performs genetic algorithm optimization with a given fitness function.
+        """Create an object that optimizes a given fitness function with GenAlg.
 
         Args:
             fitness_function: A function representing the problem to solve, must return a fitness value.
