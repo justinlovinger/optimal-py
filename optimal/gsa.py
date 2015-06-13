@@ -25,6 +25,7 @@
 import optimize
 import random
 import numpy
+import math
 
 epsilon = 0.0000001
 
@@ -162,7 +163,7 @@ def get_masses(fitnesses):
     m_vec = []
     for fitness in fitnesses:
         # Epsilon is added to prevent divide by zero errors
-        m_vec.append((fitness-worst_fitness)/fitness_range+epsilon)
+        m_vec.append((fitness-worst_fitness)/(fitness_range+epsilon)+epsilon)
 
     # Normalize to obtain final mass for each solution
     total_m = sum(m_vec)

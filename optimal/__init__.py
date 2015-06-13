@@ -1,1 +1,1 @@
-__all__ = ["gahelpers", "gaoperators", "genalg"]
+__all__ = ["gahelpers", "genalg", "gsa"]

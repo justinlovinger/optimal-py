@@ -51,6 +51,7 @@ class Optimizer:
         self.iteration = 0
         self.evaluation_runs = 0
         self.best_solution = None
+        self.best_fitness = None
         self.solution_found = False
         self._fitness_dict = {}
 
@@ -101,6 +102,7 @@ class Optimizer:
         self._fitness_dict = {}
 
         self.best_solution = best_solution['solution']
+        self.best_fitness = best_solution['fitness']
         return self.best_solution
 
     def get_fitnesses(self, population):
