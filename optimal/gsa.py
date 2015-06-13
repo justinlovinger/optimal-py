@@ -233,33 +233,12 @@ def gsa_update_position(x_i, v_i):
 
 if __name__ == '__main__':
     """Example usage of this library."""
-    import math
-    import time
+    import examplefunctions
 
-    #The first argument must always be the chromosome.
-    #Additional arguments can optionally come after chromosome
-    def get_fitness(solution, offset):
-        #Turn our chromosome of bits into floating point values
-        x1, x2 = solution
-
-        #Ackley's function
-        #A common mathematical optimization problem
-        output = -20*math.exp(-0.2*math.sqrt(0.5*(x1**2+x2**2)))-math.exp(0.5*(math.cos(2*math.pi*x1)+math.cos(2*math.pi*x2)))+20+math.e
-        output += offset
-
-        #You can prematurely stop the genetic algorithm by returning True as the second return value
-        #Here, we consider the problem solved if the output is <= 0.01
-        if output <= 0.01:
-            finished = True
-        else:
-            finished = False
-
-        #Because this function is trying to minimize the output, a smaller output has a greater fitness
-        fitness = 1/output
-        return fitness, finished
-
-    #Setup and run the genetic algorithm, using our fitness function, and a chromosome size of 32
+    #Setup and run the gsa, using our fitness function, 
+    # and a search range from -5.0 to 5.0
     #Additional fitness function arguments are added as keyword arguments
-    my_gsa = GSA(get_fitness, 2, [-5.0]*2, [5.0]*2, offset=0) #Yes, offset is completely pointless, but it demonstrates additional arguments
+    my_gsa = GSA(examplefunctions.ackley, 2, [-5.0]*2, [5.0]*2, 
+                 decode_func=examplefunctions.ackley_real)
     best_solution = my_gsa.optimize()
     print best_solution

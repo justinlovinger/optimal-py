@@ -159,44 +159,16 @@ def crossover(population, crossover_chance, crossover_operator):
     return new_population
 
 if __name__ == '__main__':
-    """Example usage of this library."""
-    import math
-    import time
+    """Example usage of this library.
+    
+    See examplefunctions.py for instructions on how to create a fitness function
+    """
+    import examplefunctions
 
-    import gahelpers
-
-    #define functions for determining fitness
-    def chromosome_to_inputs(chromosome):
-        #Helpful functions from gahelpers is used to convert binary to floats
-        x1 = gahelpers.binary_to_float(chromosome[0:16], -5, 5)
-        x2 = gahelpers.binary_to_float(chromosome[16:32], -5, 5)
-        return x1, x2
-
-    #The first argument must always be the chromosome.
-    #Additional arguments can optionally come after chromosome
-    def get_fitness(chromosome, offset): 
-        #Turn our chromosome of bits into floating point values
-        x1, x2 = chromosome_to_inputs(chromosome)
-
-        #Ackley's function
-        #A common mathematical optimization problem
-        output = -20*math.exp(-0.2*math.sqrt(0.5*(x1**2+x2**2)))-math.exp(0.5*(math.cos(2*math.pi*x1)+math.cos(2*math.pi*x2)))+20+math.e
-        output += offset
-
-        #You can prematurely stop the genetic algorithm by returning True as the second return value
-        #Here, we consider the problem solved if the output is <= 0.01
-        if output <= 0.01:
-            finished = True
-        else:
-            finished = False
-
-        #Because this function is trying to minimize the output, a smaller output has a greater fitness
-        fitness = 1/output
-
-        return fitness, finished
-
-    #Setup and run the genetic algorithm, using our fitness function, and a chromosome size of 32
-    #Additional fitness function arguments are added as keyword arguments
-    my_genalg = GenAlg(get_fitness, 32, offset=0) #Yes, offset is completely pointless, but it demonstrates additional arguments
+    # Setup and run the genetic algorithm, using our fitness function, 
+    # and a chromosome size of 32
+    # Additional fitness function arguments are added as keyword arguments
+    my_genalg = GenAlg(examplefunctions.ackley, 32, 
+                       decode_func=examplefunctions.ackley_binary)
     best_chromosome = my_genalg.optimize()
-    print chromosome_to_inputs(best_chromosome)
+    print examplefunctions.ackley_binary(best_chromosome)

@@ -23,7 +23,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="gahelpers.py" />
+    <Compile Include="examplefunctions.py" />
+    <Compile Include="helpers.py" />
     <Compile Include="genalg.py" />
     <Compile Include="gaoperators.py" />
     <Compile Include="gsa.py" />
