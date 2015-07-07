@@ -71,6 +71,7 @@ class GSA(optimize.Optimizer):
 
     def new_population(self, population, fitnesses):
         new_pop, new_velocities = new_population(population, fitnesses, self.velocities,
+                                                 self.lower_bounds, self.upper_bounds,
                                                  self.G_initial, self.G_reduction_rate,
                                                  self.iteration, self.max_iterations)
         self.velocities = new_velocities
@@ -103,8 +104,9 @@ def create_initial_population(population_size, solution_size,
 
     return population
 
-def new_population(population, fitnesses, velocities, 
-                    G_initial, G_reduction_rate, iteration, max_iterations):
+def new_population(population, fitnesses, velocities,
+                   lower_bounds, upper_bounds, 
+                   G_initial, G_reduction_rate, iteration, max_iterations):
     # Update the gravitational constant, and the best and worst of the population
     # Calulate the mass and acceleration for each solution
     # Update the velocity and position of each solution
@@ -115,8 +117,10 @@ def new_population(population, fitnesses, velocities,
     masses = get_masses(fitnesses)
         
     # Create bundled solution with position and mass for the K best calculation
-    solutions = [{'pos': pos, 'mass': mass} for pos, mass in zip(population, masses)]
-    solutions.sort(key = lambda x: x['mass'])
+    # Also store index to later check if two solutions are the same
+    # Sorted by solution fitness (mass)
+    solutions = [{'pos': pos, 'mass': mass, 'index': i} for i, (pos, mass) in enumerate(zip(population, masses))]
+    solutions.sort(key = lambda x: x['mass'], reverse=True)
 
     # Get the force on each solution
     # Only the best K solutions apply force
@@ -127,7 +131,7 @@ def new_population(population, fitnesses, velocities,
         force_vectors = []
         for j in range(K):
             # If it is not the same solution
-            if population[i] != solutions[j]['pos']: #NOTE: this could use optimization
+            if i != solutions[j]['index']:
                 force_vectors.append(gsa_force(G, masses[i], solutions[j]['mass'], 
                                                 population[i], solutions[j]['pos']))
         forces.append(gsa_total_force(force_vectors, solution_size))
@@ -145,7 +149,16 @@ def new_population(population, fitnesses, velocities,
     # Create the new population
     new_population = []
     for i in range(population_size):
-        new_population.append(gsa_update_position(population[i], new_velocities[i]))
+        new_position = gsa_update_position(population[i], new_velocities[i])
+        # Constrain to bounds
+        new_position = list(numpy.clip(new_position, lower_bounds, upper_bounds))
+        #for j in range(solution_size):
+        #    if new_position[j] < lower_bounds[j]:
+        #        new_position[j] = lower_bounds[j]
+        #    if new_position[j] > upper_bounds[j]:
+        #        new_position[j] = upper_bounds[j]
+
+        new_population.append(new_position)
 
     return new_population, new_velocities
 
@@ -231,7 +244,7 @@ def gsa_update_velocity(v_i, a_i):
     return v
 
 def gsa_update_position(x_i, v_i):
-    return list(numpy.add(x_i, v_i))
+    return numpy.add(x_i, v_i)
 
 if __name__ == '__main__':
     """Example usage of this library."""
