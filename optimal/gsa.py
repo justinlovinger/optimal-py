@@ -236,7 +236,9 @@ def gsa_acceleration(total_force, M_i):
 def gsa_update_velocity(v_i, a_i):
     """Stochastically update the velocity of solution i."""
 
-    # The GSA algorithm specifies that velocity is randomly weighted for each dimension.
+    # The GSA algorithm specifies that the new velocity for each dimension
+    # is a sum of a random fraction of its current velocity in that dimension, 
+    # and its acceleration in that dimension
     # For this reason we sum the dimensions individually instead of simply using vec_a+vec_b
     v = []
     for d in range(len(v_i)):
