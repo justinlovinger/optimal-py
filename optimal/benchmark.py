@@ -32,6 +32,13 @@ import numbers
 # stats['sd'] -> standard_deviation(stats['runs'])
 
 def mean_of_runs(stats, key='runs'):
+    """Obtain the mean of stats.
+
+    Args:
+        stats: dict; A set of stats, structured as above.
+        key: str; Optional key to determine where list of runs is found in stats
+    """
+
     num_runs = len(stats[key])
     first = stats[key][0]
 
@@ -44,6 +51,14 @@ def mean_of_runs(stats, key='runs'):
     return mean
 
 def sd_of_runs(stats, mean, key='runs'):
+    """Obtain the standard deviation of stats.
+
+    Args:
+        stats: dict; A set of stats, structured as above.
+        mean: dict; Mean for each key in stats.
+        key: str; Optional key to determine where list of runs is found in stats
+    """
+
     num_runs = len(stats[key])
     first = stats[key][0]
 
@@ -100,6 +115,12 @@ def benchmark(optimizer, runs=20):
     return stats
 
 def compare(optimizers, runs=20):
+    """Compare a set of optimizers.
+
+    Args:
+        optimizers: list; A list of optimizers to compare.
+        runs: int; How many times to run each optimizer (smoothness)
+    """
     stats = {}
     key_counts = {}
     for optimizer in optimizers:
