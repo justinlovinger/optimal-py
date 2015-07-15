@@ -23,33 +23,41 @@
 ###############################################################################
 
 import math
+import copy
+import numbers
 
 # stats:
 # stats['runs'] -> [{'stat_name' -> stat}, ]
 # stats['mean'] -> mean(stats['runs'])
 # stats['sd'] -> standard_deviation(stats['runs'])
 
-def mean_of_runs(stats):
-    num_runs = len(stats['runs'])
+def mean_of_runs(stats, key='runs'):
+    num_runs = len(stats[key])
+    first = stats[key][0]
 
     mean = {}
-    for key in stats['runs'][0]:
-        mean[key] = sum(run[key] for run in stats['runs'])/float(num_runs)
+    for stat_key in first:
+        # Skip non numberic attributes
+        if isinstance(first[stat_key], numbers.Number):
+            mean[stat_key] = sum(run[stat_key] for run in stats[key])/float(num_runs)
 
     return mean
 
-def sd_of_runs(stats, mean):
-    num_runs = len(stats['runs'])
+def sd_of_runs(stats, mean, key='runs'):
+    num_runs = len(stats[key])
+    first = stats[key][0]
 
     sd = {}
-    for key in stats['runs'][0]:
-        sd[key] = math.sqrt(sum((run[key]-mean[key])**2 for run in stats['runs'])/float(num_runs))
+    for stat_key in first:
+        # Skip non numberic attributes
+        if isinstance(first[stat_key], numbers.Number):
+            sd[stat_key] = math.sqrt(sum((run[stat_key]-mean[stat_key])**2 for run in stats[key])/float(num_runs))
     
     return sd
 
-def add_mean_sd_to_stats(stats):
-    mean = mean_of_runs(stats)
-    sd = sd_of_runs(stats, mean) 
+def add_mean_sd_to_stats(stats, key='runs'):
+    mean = mean_of_runs(stats, key)
+    sd = sd_of_runs(stats, mean, key) 
 
     stats['mean'] = mean
     stats['sd'] = sd
@@ -93,19 +101,22 @@ def benchmark(optimizer, runs=20):
 
 def compare(optimizers, runs=20):
     stats = {}
-    class_counts = {}
+    key_counts = {}
     for optimizer in optimizers:
+        # For nice human readable dictionaries, extract useful names from optimizer
         class_name = optimizer.__class__.__name__
+        fitness_func_name = optimizer.fitness_function.__name__
+        key_name = '{} {}'.format(class_name, fitness_func_name)
         
-        # Keep track of how many optimizers of each class
+        # Keep track of how many optimizers of each class / fitness func
         # for better keys in stats dict
         try:
-            class_counts[class_name] += 1
+            key_counts[key_name] += 1
         except KeyError:
-            class_counts[class_name] = 1
+            key_counts[key_name] = 1
 
         # Foo 1, Foo 2, Bar 1, etc.
-        key = '{} {}'.format(class_name, class_counts[class_name])
+        key = '{} {}'.format(key_name, key_counts[key_name])
 
         print key + ': ',
 
@@ -121,7 +132,22 @@ def aggregate(all_stats):
 
     Useful for combining stats for the same optimizer class and multiple problems.
     """
+    aggregate_stats = {'means': [], 'sds': []}
+    for optimizer_key in all_stats:
+        # runs is the mean, for add_mean_sd function
+        mean_stats = copy.deepcopy(all_stats[optimizer_key]['mean'])
+        mean_stats['name'] = optimizer_key
+        aggregate_stats['means'].append(mean_stats)
 
+        # also keep track of standard deviations
+        sd_stats = copy.deepcopy(all_stats[optimizer_key]['sd'])
+        sd_stats['name'] = optimizer_key
+        aggregate_stats['sds'].append(sd_stats)
+
+
+    add_mean_sd_to_stats(aggregate_stats, 'means')
+
+    return aggregate_stats
 
 if __name__ == '__main__':
     import pprint
@@ -136,3 +162,6 @@ if __name__ == '__main__':
 
     stats = compare([my_genalg, my_gsa])
     pprint.pprint(stats)
+
+    aggregate_stats = aggregate(stats)
+    pprint.pprint(aggregate_stats)
