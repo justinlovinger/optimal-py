@@ -55,10 +55,6 @@ class Optimizer:
         self.solution_found = False
         self._fitness_dict = {}
 
-        # Parameters for algorithm specific functions
-        self.initial_pop_args = []
-        self.new_pop_args = []
-
     def initialize(self):
         pass
 
