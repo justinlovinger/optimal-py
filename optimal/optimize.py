@@ -44,6 +44,9 @@ class Optimizer:
         self.population_size = population_size
         self.max_iterations = max_iterations
 
+        # Parameters for metaheuristic optimization
+        self.meta_parameters = {'population_size': {'min': 2, 'max': 1000}}
+
         #enable logging by default
         self.logging = True
 
@@ -130,3 +133,6 @@ class Optimizer:
                 break
 
         return fitnesses, finished
+
+    def meta_optimize(self):
+        """Optimize parameters for a given problem."""
