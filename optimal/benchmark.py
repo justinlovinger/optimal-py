@@ -67,6 +67,8 @@ def benchmark(optimizer, runs=20):
     # for an accurate evaluation
     for i in range(runs):
         optimizer.optimize()
+
+        # Convert bool to number for mean and standard deviation calculations
         if optimizer.solution_found:
             finished_num = 1.0
         else:
@@ -114,6 +116,12 @@ def compare(optimizers, runs=20):
 
     return stats
 
+def aggregate(all_stats):
+    """Combine stats for multiple optimizers to obtain one mean and sd.
+
+    Useful for combining stats for the same optimizer class and multiple problems.
+    """
+
 
 if __name__ == '__main__':
     import pprint
@@ -124,7 +132,7 @@ if __name__ == '__main__':
     my_genalg = GenAlg(examplefunctions.ackley, 32, 
                        decode_func=examplefunctions.ackley_binary)
     my_gsa = GSA(examplefunctions.ackley, 2, [-5.0]*2, [5.0]*2, 
-                 decode_func=examplefunctions.ackley_real)
+                 decode_func=examplefunctions.decode_real)
 
     stats = compare([my_genalg, my_gsa])
     pprint.pprint(stats)
