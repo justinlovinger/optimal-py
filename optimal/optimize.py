@@ -134,5 +134,10 @@ class Optimizer:
 
         return fitnesses, finished
 
-    def meta_optimize(self):
-        """Optimize parameters for a given problem."""
+    def meta_optimize(self, meta_optimizer, parameter_locks):
+        """Optimize parameters for a given problem.
+        
+        Args:
+            meta_optimizer: an optional optimizer to use for metaoptimiztion.
+            parameter_locks: a list of strings, each corrosponding to a hyperparamter.
+        """
