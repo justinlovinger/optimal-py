@@ -120,6 +120,9 @@ def compare(optimizers, runs=20):
     Args:
         optimizers: list; A list of optimizers to compare.
         runs: int; How many times to run each optimizer (smoothness)
+
+    Returns:
+        dict; mapping optimizer identifier to stats.
     """
     stats = {}
     key_counts = {}
@@ -152,6 +155,9 @@ def aggregate(all_stats):
     """Combine stats for multiple optimizers to obtain one mean and sd.
 
     Useful for combining stats for the same optimizer class and multiple problems.
+
+    Args:
+        all_stats: dict; output from compare.
     """
     aggregate_stats = {'means': [], 'sds': []}
     for optimizer_key in all_stats:
