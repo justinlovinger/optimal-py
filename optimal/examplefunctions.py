@@ -71,7 +71,7 @@ def ackley(solution, decode_func):
 LEVI_MIN = -5.0
 LEVI_MAX = 5.0
 
-levi_binary = ackley_binary
+levi_binary = functools.partial(decode_binary, min_=LEVI_MIN, max_=LEVI_MAX)
 
 def levis_function(solution, decode_func):
     x1, x2 = decode_func(solution)
@@ -84,8 +84,8 @@ def levis_function(solution, decode_func):
 ######################
 # Eggholder
 ######################
-EGG_MIN = 256
-EGG_MAX = 512
+EGG_MIN = 256.0
+EGG_MAX = 512.0
 
 egg_binary = functools.partial(decode_binary, min_=EGG_MIN, max_=EGG_MAX)
 
@@ -93,7 +93,54 @@ def eggholder_function(solution, decode_func):
     x, y = decode_func(solution)
 
     output = -(y+47)*math.sin(math.sqrt(math.fabs(y+x/2+47)))-x*math.sin(math.sqrt(math.fabs(x-(y+47))))
-    finished = output < -934.0 #solution is -959.6407
+    finished = output < -934.0 # solution == -959.6407
 
     return 1/(output+959.6407), finished
 
+######################
+# Holder's Table
+######################
+TABLE_MIN = -10.0
+TABLE_MAX = 10.0
+
+table_binary = functools.partial(decode_binary, min_=TABLE_MIN, max_=TABLE_MAX)
+
+def table_function(solution, decode_func):
+    x, y = decode_func(solution)
+
+    output = -math.fabs(math.sin(x)*math.cos(y)*math.exp(math.fabs(1-(math.sqrt(x*x+y*y))/math.pi)))
+    finished = output < -19.200 # solution == -19.2085
+
+    return 1/(output+19.2085), finished
+
+######################
+# Shaffer N2
+######################
+SHAFFER_MIN = -25.0
+SHAFFER_MAX = 25.0
+
+shaffer_binary = functools.partial(decode_binary, min_=SHAFFER_MIN, max_=SHAFFER_MAX)
+
+def shaffer_function(solution, decode_func):
+    x, y = decode_func(solution)
+
+    output = 0.5+(math.sin(x*x-y*y)**2-0.5)/(1+0.001*(x*x+y*y))**2
+    finished = output < 0.01
+
+    return 1/output, finished
+
+######################
+# Cross Tray
+######################
+CROSS_MIN = -5.0
+CROSS_MAX = 5.0
+
+cross_binary = functools.partial(decode_binary, min_=CROSS_MIN, max_=CROSS_MAX)
+
+def cross_function(solution, decode_func):
+    x, y = decode_func(solution)
+
+    output = -0.0001*(math.fabs(math.sin(x)*math.sin(y)*math.exp(math.fabs(100-math.sqrt(x*x+y*y)/math.pi)))+1)**0.1
+    finished = output < -2.062 # solution == -2.06261
+
+    return 1/(output+2.06261), finished
