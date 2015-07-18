@@ -256,6 +256,6 @@ if __name__ == '__main__':
     # and a search range from -5.0 to 5.0
     #Additional fitness function arguments are added as keyword arguments
     my_gsa = GSA(examplefunctions.ackley, 2, [-5.0]*2, [5.0]*2, 
-                 decode_func=examplefunctions.ackley_real)
+                 decode_func=examplefunctions.decode_real)
     best_solution = my_gsa.optimize()
     print best_solution
