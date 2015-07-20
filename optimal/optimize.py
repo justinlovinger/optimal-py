@@ -215,7 +215,7 @@ class Optimizer:
                     # Decode binary
                     if parameters['type'] == 'discrete':
                         i = helpers.binary_to_int(binary, 
-                                    max=len(parameters['values']))
+                                    max=len(parameters['values'])-1)
                         value = parameters['values'][i]
                     elif parameters['type'] == 'int':
                         value = helpers.binary_to_int(binary, 
