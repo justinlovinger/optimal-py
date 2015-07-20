@@ -22,9 +22,11 @@
 #SOFTWARE.
 ###############################################################################
 
-"""Useful functions for working with genetic algorithms."""
+"""Useful functions for working with metaheuristics."""
 
-def binary_to_int(binary_list, offset=0):
+import math
+
+def binary_to_int(binary_list, offset=0, max=None):
     """Takes a list of binary values, returns a integer representation.
 
    The maximum value is determined by the number of bits in binary_list,
@@ -42,7 +44,12 @@ def binary_to_int(binary_list, offset=0):
     binary_string = ''.join(binary_list) #convert the list of binary values into a string
     integer = int(binary_string, 2) #convert the string into an integer
 
-    return integer+offset
+    value = integer+offset
+    # Trim if necessary
+    if max and value > max:
+        value = max
+
+    return value
 
 def binary_to_float(binary_list, minimum, maximum):
     """Takes a list of binary values, returns a float representation.
@@ -69,3 +76,11 @@ def binary_to_float(binary_list, minimum, maximum):
     scaled_floating_point += minimum
 
     return scaled_floating_point
+
+def avg(values):
+    """Return the average of a set of values."""
+    return sum(values)/len(values)
+
+def binary_size(num_values):
+    """Return the min number of bits to represet num_values."""
+    return int(math.ceil(math.log(num_values, 2)))

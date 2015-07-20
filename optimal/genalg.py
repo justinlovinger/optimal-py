@@ -57,8 +57,6 @@ class GenAlg(optimize.Optimizer):
         self.chromosome_size = chromosome_size
 
         #set genetic algorithm paramaters
-        if self.population_size % 2 == 1: #if population size is odd
-            self.population_size += 1 #make population size even
         self.mutation_chance = mutation_chance
         self.crossover_chance = crossover_chance
         self.selection_function = selection_function
@@ -68,6 +66,16 @@ class GenAlg(optimize.Optimizer):
         self.initial_pop_args = [self.chromosome_size]
         self.new_pop_args = [self.mutation_chance, self.crossover_chance, 
                              self.selection_function, self.crossover_function]
+
+        # Meta optimize parameters
+        self.meta_parameters['mutation_chance'] = {'type': 'float', 'min': 0.0, 'max': 1.0}
+        self.meta_parameters['crossover_chance'] = {'type': 'float', 'min': 0.0, 'max': 1.0}
+        self.meta_parameters['selection_function'] = {'type': 'discrete', 
+                                        'values': [gaoperators.roulette_selection,
+                                                   gaoperators.stochastic_selection]}
+        self.meta_parameters['crossover_function'] = {'type': 'discrete', 
+                                        'values': [gaoperators.one_point_crossover,
+                                                   gaoperators.uniform_crossover]}
 
     def create_initial_population(self, population_size):
         return create_initial_population(population_size, self.chromosome_size)
@@ -148,7 +156,12 @@ def crossover(population, crossover_chance, crossover_operator):
 
     new_population = []
     for i in range(0, len(population), 2): #for every other index
-        parents = [population[i], population[i+1]] #take parents from every set of 2 in the population
+        # Take parents from every set of 2 in the population
+        # Wrap index if out of range
+        try:
+            parents = [population[i], population[i+1]]
+        except IndexError:
+            parents = [population[i], population[0]]
 
         crossover = random.uniform(0.0, 1.0)
 
@@ -172,5 +185,6 @@ if __name__ == '__main__':
     # Additional fitness function arguments are added as keyword arguments
     my_genalg = GenAlg(examplefunctions.ackley, 32, 
                        decode_func=examplefunctions.ackley_binary)
+    print my_genalg.meta_optimize(parameter_locks=['mutation_chance', 'crossover_chance', 'selection_function', 'crossover_function'], low_memory=True)
     best_chromosome = my_genalg.optimize()
     print examplefunctions.ackley_binary(best_chromosome)
