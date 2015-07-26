@@ -124,6 +124,7 @@ def new_population(population, fitnesses, mutation_chance=0.02, crossover_chance
     """
     #selection
     fitness_sum = sum(fitnesses)
+
     #generate probabilities
     #creates a list of increasing values. 
     #The greater the gap between two values, the greater the probability. Ex. [0.1, 0.23, 0.56, 1.0]
@@ -185,6 +186,5 @@ if __name__ == '__main__':
     # Additional fitness function arguments are added as keyword arguments
     my_genalg = GenAlg(examplefunctions.ackley, 32, 
                        decode_func=examplefunctions.ackley_binary)
-    print my_genalg.meta_optimize(parameter_locks=['mutation_chance', 'crossover_chance', 'selection_function', 'crossover_function'], low_memory=True)
     best_chromosome = my_genalg.optimize()
     print examplefunctions.ackley_binary(best_chromosome)

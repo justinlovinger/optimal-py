@@ -143,14 +143,17 @@ class Optimizer:
             setattr(self, name, value)
 
     def meta_optimize(self, meta_optimizer=None, parameter_locks=None, 
-                      low_memory=True):
+                      low_memory=True, smoothing=20):
         """Optimize hyperparameters for a given problem.
         
         Args:
             meta_optimizer: an optional optimizer to use for metaoptimiztion.
             parameter_locks: a list of strings, each corrosponding to a hyperparamter that should not be optimized.
             low_memory: disable performance enhancements to save memory (they use a lot of memory otherwise).
+            smoothing: int; number of runs to average over for each set of hyperparameters.
         """
+        assert smoothing > 0
+
         if meta_optimizer == None:
             # Initialize default meta optimizer
             # GenAlg is used because it supports both discrete and continous attributes
@@ -161,87 +164,31 @@ class Optimizer:
 
             # First, handle parameter locks, since it will modify our
             # meta_parameters dict
-            locked_parameters = {}
-            if parameter_locks:
-                for name in parameter_locks:
-                    # store the current optimzier value
-                    # and remove from our dictionary of paramaters to optimize
-                    if parameter_locks and name in parameter_locks:
-                        locked_parameters[name] = getattr(self, name)
-                        meta_parameters.pop(name)
+            locked_values = parse_parameter_locks(self, meta_parameters, 
+                                                  parameter_locks)
 
             # We need to know the size of our chromosome, 
             # based on the hyperparameters to optimize
-            # This is also a good time to parse our parameter locks
-            solution_size = 0
-            for name, parameters in meta_parameters.iteritems():
-                if parameters['type'] == 'discrete':
-                    # Binary encoding of discrete values -> log_2 N
-                    num_values = len(parameters['values'])
-                    binary_size = helpers.binary_size(num_values)
-                elif parameters['type'] == 'int':
-                    # Use enough bits to cover range from min to max
-                    range = parameters['max'] - parameters['min']
-                    binary_size = helpers.binary_size(range)
-                elif parameters['type'] == 'float':
-                    # Use enough bits to provide fine steps between min and max
-                    range = parameters['max'] - parameters['min']
-                    # * 1000 provides 1000 values between each natural number
-                    binary_size = helpers.binary_size(range*1000)
-                else:
-                    raise ValueError('Parameter type "{}" does not match known values'.format(parameters['type']))
-
-                # Store binary size with parameters for use in decode function
-                parameters['binary_size'] = binary_size
-
-                solution_size += binary_size
+            solution_size = get_hyperparameter_solution_size(meta_parameters)
 
             # We also need to create a decode function to transform the binary solution 
             # into parameters for the metaheuristic
-            # Locked parameters are also returned by decode function, but are not
-            # based on solution
-            def decode(solution):
-                # Start with out stationary (locked) paramaters
-                hyperparameters = locked_parameters
-
-                # Obtain moving hyperparameters from binary solution
-                index = 0
-                for name, parameters in meta_parameters.iteritems():
-                    # Obtain binary for this hyperparameter
-                    binary_size = parameters['binary_size']
-                    binary = solution[index:index+binary_size]
-                    index += binary_size # Just index to start of next hyperparameter
-
-                    # Decode binary
-                    if parameters['type'] == 'discrete':
-                        i = helpers.binary_to_int(binary, 
-                                    max=len(parameters['values'])-1)
-                        value = parameters['values'][i]
-                    elif parameters['type'] == 'int':
-                        value = helpers.binary_to_int(binary, 
-                                    offset=parameters['min'], max=parameters['max'])
-                    elif parameters['type'] == 'float':
-                        value = helpers.binary_to_float(binary, 
-                                    minimum=parameters['min'], maximum=parameters['max'])
-                    else:
-                        raise ValueError('Parameter type "{}" does not match known values'.format(parameters['type']))
-
-                    # Store value
-                    hyperparameters[name] = value
-
-                return hyperparameters
+            decode = make_hyperparameter_decode_func(locked_values, meta_parameters)
             
-            # Create metaheuristic with computed decode function and soltuion size
-            # Also, a master fitness dictionary is stored for use between calls
+            
+            # A master fitness dictionary can be stored for use between calls
             # to meta_fitness
             if low_memory:
                 master_fitness_dict = None
             else:
                 master_fitness_dict = {}
+
+            # Create metaheuristic with computed decode function and soltuion size
             meta_optimizer = genalg.GenAlg(meta_fitness, solution_size,
                                             _decode_func=decode,
                                             _master_fitness_dict=master_fitness_dict,
-                                            _optimizer = self)
+                                            _optimizer=self,
+                                            _runs=smoothing)
         
         # Determine the best hyperparameters with a metaheuristic
         best_solution = meta_optimizer.optimize()
@@ -252,6 +199,85 @@ class Optimizer:
 
         # And return
         return best_parameters
+
+def parse_parameter_locks(optimizer, meta_parameters, parameter_locks):
+    # WARNING: meta_parameters is modified inline
+
+    locked_values = {}
+    if parameter_locks:
+        for name in parameter_locks:
+            # store the current optimzier value
+            # and remove from our dictionary of paramaters to optimize
+            if parameter_locks and name in parameter_locks:
+                locked_values[name] = getattr(optimizer, name)
+                meta_parameters.pop(name)
+
+    return locked_values
+
+def get_hyperparameter_solution_size(meta_parameters):
+    # WARNING: meta_parameters is modified inline
+
+    solution_size = 0
+    for name, parameters in meta_parameters.iteritems():
+        if parameters['type'] == 'discrete':
+            # Binary encoding of discrete values -> log_2 N
+            num_values = len(parameters['values'])
+            binary_size = helpers.binary_size(num_values)
+        elif parameters['type'] == 'int':
+            # Use enough bits to cover range from min to max
+            range = parameters['max'] - parameters['min']
+            binary_size = helpers.binary_size(range)
+        elif parameters['type'] == 'float':
+            # Use enough bits to provide fine steps between min and max
+            range = parameters['max'] - parameters['min']
+            # * 1000 provides 1000 values between each natural number
+            binary_size = helpers.binary_size(range*1000)
+        else:
+            raise ValueError('Parameter type "{}" does not match known values'.format(parameters['type']))
+
+        # Store binary size with parameters for use in decode function
+        parameters['binary_size'] = binary_size
+
+        solution_size += binary_size
+
+    return solution_size
+
+def make_hyperparameter_decode_func(locked_values, meta_parameters):
+    # Locked parameters are also returned by decode function, but are not
+    # based on solution
+
+    def decode(solution):
+        # Start with out stationary (locked) paramaters
+        hyperparameters = locked_values
+
+        # Obtain moving hyperparameters from binary solution
+        index = 0
+        for name, parameters in meta_parameters.iteritems():
+            # Obtain binary for this hyperparameter
+            binary_size = parameters['binary_size']
+            binary = solution[index:index+binary_size]
+            index += binary_size # Just index to start of next hyperparameter
+
+            # Decode binary
+            if parameters['type'] == 'discrete':
+                i = helpers.binary_to_int(binary, 
+                            max=len(parameters['values'])-1)
+                value = parameters['values'][i]
+            elif parameters['type'] == 'int':
+                value = helpers.binary_to_int(binary, 
+                            offset=parameters['min'], max=parameters['max'])
+            elif parameters['type'] == 'float':
+                value = helpers.binary_to_float(binary, 
+                            minimum=parameters['min'], maximum=parameters['max'])
+            else:
+                raise ValueError('Parameter type "{}" does not match known values'.format(parameters['type']))
+
+            # Store value
+            hyperparameters[name] = value
+
+        return hyperparameters
+
+    return decode
 
 def meta_fitness(solution, _decode_func, _optimizer, _master_fitness_dict, _runs=20):
     """Test a metaheuristic with parameters encoded in solution.
@@ -291,6 +317,6 @@ def meta_fitness(solution, _decode_func, _optimizer, _master_fitness_dict, _runs
     fitness = 1.0 / helpers.avg(all_evaluation_runs)
 
     # Optimizer is heavily penalized for missing solutions
-    fitness = fitness * helpers.avg(solutions_found)**2
+    fitness = fitness * helpers.avg(solutions_found)**2 + 1e-19 # To avoid 0 fitness
 
     return fitness

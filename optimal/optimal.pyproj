@@ -31,10 +31,13 @@
     <Compile Include="gaoperators.py" />
     <Compile Include="gsa.py" />
     <Compile Include="optimize.py" />
+    <Compile Include="tests\testall.py" />
+    <Compile Include="tests\test_meta_optimize.py" />
     <Compile Include="__init__.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="examples\" />
+    <Folder Include="tests\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
 </Project>
