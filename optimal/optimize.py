@@ -142,53 +142,56 @@ class Optimizer:
         for name, value in parameters.iteritems():
             setattr(self, name, value)
 
-    def meta_optimize(self, meta_optimizer=None, parameter_locks=None, 
+    def meta_optimize(self, parameter_locks=None, problems=None,
                       low_memory=True, smoothing=20):
         """Optimize hyperparameters for a given problem.
         
         Args:
-            meta_optimizer: an optional optimizer to use for metaoptimiztion.
             parameter_locks: a list of strings, each corrosponding to a hyperparamter that should not be optimized.
+            problems: list of fitness_function, arguments, pairs, allowing optimization based on multiple similar problems.
             low_memory: disable performance enhancements to save memory (they use a lot of memory otherwise).
             smoothing: int; number of runs to average over for each set of hyperparameters.
         """
         assert smoothing > 0
 
-        if meta_optimizer == None:
-            # Initialize default meta optimizer
-            # GenAlg is used because it supports both discrete and continous attributes
-            import genalg
+        # Initialize default meta optimizer
+        # GenAlg is used because it supports both discrete and continous attributes
+        import genalg
 
-            # Copy to avoid permanent modification
-            meta_parameters = copy.deepcopy(self.meta_parameters) 
+        # Copy to avoid permanent modification
+        meta_parameters = copy.deepcopy(self.meta_parameters) 
 
-            # First, handle parameter locks, since it will modify our
-            # meta_parameters dict
-            locked_values = _parse_parameter_locks(self, meta_parameters, 
-                                                  parameter_locks)
+        # First, handle parameter locks, since it will modify our
+        # meta_parameters dict
+        locked_values = _parse_parameter_locks(self, meta_parameters, 
+                                                parameter_locks)
 
-            # We need to know the size of our chromosome, 
-            # based on the hyperparameters to optimize
-            solution_size = _get_hyperparameter_solution_size(meta_parameters)
+        # We need to know the size of our chromosome, 
+        # based on the hyperparameters to optimize
+        solution_size = _get_hyperparameter_solution_size(meta_parameters)
 
-            # We also need to create a decode function to transform the binary solution 
-            # into parameters for the metaheuristic
-            decode = make_hyperparameter_decode_func(locked_values, meta_parameters)
+        # We also need to create a decode function to transform the binary solution 
+        # into parameters for the metaheuristic
+        decode = _make_hyperparameter_decode_func(locked_values, meta_parameters)
             
-            
-            # A master fitness dictionary can be stored for use between calls
-            # to meta_fitness
-            if low_memory:
-                master_fitness_dict = None
-            else:
-                master_fitness_dict = {}
+        # If the user does not specify a list of problems, default to using
+        # only the problem in the optimizer
+        if problems == None:
+            problems = [(self.fitness_function, self.additional_parameters)]
 
-            # Create metaheuristic with computed decode function and soltuion size
-            meta_optimizer = genalg.GenAlg(meta_fitness, solution_size,
-                                            _decode_func=decode,
-                                            _master_fitness_dict=master_fitness_dict,
-                                            _optimizer=self,
-                                            _runs=smoothing)
+        # A master fitness dictionary can be stored for use between calls
+        # to meta_fitness
+        if low_memory:
+            master_fitness_dict = None
+        else:
+            master_fitness_dict = {}
+
+        # Create metaheuristic with computed decode function and soltuion size
+        meta_optimizer = genalg.GenAlg(_meta_fitness, solution_size,
+                                        _decode_func=decode,
+                                        _master_fitness_dict=master_fitness_dict,
+                                        _optimizer=self, _problems=problems,
+                                        _runs=smoothing)
         
         # Determine the best hyperparameters with a metaheuristic
         best_solution = meta_optimizer.optimize()
@@ -242,7 +245,7 @@ def _get_hyperparameter_solution_size(meta_parameters):
 
     return solution_size
 
-def make_hyperparameter_decode_func(locked_values, meta_parameters):
+def _make_hyperparameter_decode_func(locked_values, meta_parameters):
     # Locked parameters are also returned by decode function, but are not
     # based on solution
 
@@ -279,7 +282,8 @@ def make_hyperparameter_decode_func(locked_values, meta_parameters):
 
     return decode
 
-def meta_fitness(solution, _decode_func, _optimizer, _master_fitness_dict, _runs=20):
+def _meta_fitness(solution, _decode_func, _optimizer, _problems,
+                 _master_fitness_dict, _runs=20):
     """Test a metaheuristic with parameters encoded in solution.
     
     Our goal is to minimize number of evaluation runs until a solution is found,
@@ -306,12 +310,18 @@ def meta_fitness(solution, _decode_func, _optimizer, _master_fitness_dict, _runs
     all_evaluation_runs = []
     solutions_found = []
     for i in range(_runs):
-        optimizer.optimize()
-        all_evaluation_runs.append(optimizer.evaluation_runs)
-        if optimizer.solution_found:
-            solutions_found.append(1.0)
-        else:
-            solutions_found.append(0.0)
+        for problem in _problems:
+            # Set problem
+            optimizer.fitness_function = problem[0]
+            optimizer.additional_parameters = problem[1]
+
+            # Get performance for problem
+            optimizer.optimize()
+            all_evaluation_runs.append(optimizer.evaluation_runs)
+            if optimizer.solution_found:
+                solutions_found.append(1.0)
+            else:
+                solutions_found.append(0.0)
 
     # Our main goal is to minimize time the optimizer takes
     fitness = 1.0 / helpers.avg(all_evaluation_runs)
