@@ -24,6 +24,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="benchmark.py" />
+    <Compile Include="crossentropy.py" />
     <Compile Include="examplefunctions.py" />
     <Compile Include="examples\benchmark_gaoperators.py" />
     <Compile Include="helpers.py" />
@@ -32,6 +33,7 @@
     <Compile Include="gsa.py" />
     <Compile Include="optimize.py" />
     <Compile Include="tests\testall.py" />
+    <Compile Include="tests\test_crossentropy.py" />
     <Compile Include="tests\test_meta_optimize.py" />
     <Compile Include="__init__.py" />
   </ItemGroup>

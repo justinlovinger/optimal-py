@@ -25,7 +25,7 @@
 import copy
 import helpers
 
-class Optimizer:
+class Optimizer(object):
     """Base class for optimization algorithms."""
 
     def __init__(self, fitness_function, population_size=20, max_iterations=100,
