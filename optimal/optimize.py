@@ -164,12 +164,12 @@ class Optimizer:
 
             # First, handle parameter locks, since it will modify our
             # meta_parameters dict
-            locked_values = parse_parameter_locks(self, meta_parameters, 
+            locked_values = _parse_parameter_locks(self, meta_parameters, 
                                                   parameter_locks)
 
             # We need to know the size of our chromosome, 
             # based on the hyperparameters to optimize
-            solution_size = get_hyperparameter_solution_size(meta_parameters)
+            solution_size = _get_hyperparameter_solution_size(meta_parameters)
 
             # We also need to create a decode function to transform the binary solution 
             # into parameters for the metaheuristic
@@ -200,7 +200,7 @@ class Optimizer:
         # And return
         return best_parameters
 
-def parse_parameter_locks(optimizer, meta_parameters, parameter_locks):
+def _parse_parameter_locks(optimizer, meta_parameters, parameter_locks):
     # WARNING: meta_parameters is modified inline
 
     locked_values = {}
@@ -214,7 +214,7 @@ def parse_parameter_locks(optimizer, meta_parameters, parameter_locks):
 
     return locked_values
 
-def get_hyperparameter_solution_size(meta_parameters):
+def _get_hyperparameter_solution_size(meta_parameters):
     # WARNING: meta_parameters is modified inline
 
     solution_size = 0

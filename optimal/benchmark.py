@@ -31,7 +31,7 @@ import numbers
 # stats['mean'] -> mean(stats['runs'])
 # stats['sd'] -> standard_deviation(stats['runs'])
 
-def mean_of_runs(stats, key='runs'):
+def _mean_of_runs(stats, key='runs'):
     """Obtain the mean of stats.
 
     Args:
@@ -50,7 +50,7 @@ def mean_of_runs(stats, key='runs'):
 
     return mean
 
-def sd_of_runs(stats, mean, key='runs'):
+def _sd_of_runs(stats, mean, key='runs'):
     """Obtain the standard deviation of stats.
 
     Args:
@@ -70,9 +70,9 @@ def sd_of_runs(stats, mean, key='runs'):
     
     return sd
 
-def add_mean_sd_to_stats(stats, key='runs'):
-    mean = mean_of_runs(stats, key)
-    sd = sd_of_runs(stats, mean, key) 
+def _add_mean_sd_to_stats(stats, key='runs'):
+    mean = _mean_of_runs(stats, key)
+    sd = _sd_of_runs(stats, mean, key) 
 
     stats['mean'] = mean
     stats['sd'] = sd
@@ -107,7 +107,7 @@ def benchmark(optimizer, runs=20):
 
     # Mean gives a good overall idea of the metaheuristics effectiveness
     # Standard deviation (SD) shows consistency of performance
-    add_mean_sd_to_stats(stats)
+    _add_mean_sd_to_stats(stats)
 
     # Bring back the users logging option for their optimizer
     optimizer.logging = logging
@@ -172,7 +172,7 @@ def aggregate(all_stats):
         aggregate_stats['sds'].append(sd_stats)
 
 
-    add_mean_sd_to_stats(aggregate_stats, 'means')
+    _add_mean_sd_to_stats(aggregate_stats, 'means')
 
     return aggregate_stats
 
