@@ -117,9 +117,10 @@ class Optimizer:
         fitnesses = []
         finished = False
         for solution in population:
+            str_solution = str(solution)
             try:
                 #attempt to retrieve the fitness from the internal fitness memory
-                fitness = self._fitness_dict[str(solution)]
+                fitness = self._fitness_dict[str_solution]
             except KeyError:
                 #if the fitness is not remembered
                 #calculate the fitness, pass in any saved user arguments
@@ -129,7 +130,7 @@ class Optimizer:
                 if isinstance(fitness, tuple):
                     finished = fitness[1]
                     fitness = fitness[0]
-                self._fitness_dict[str(solution)] = fitness
+                self._fitness_dict[str_solution] = fitness
                 self.evaluation_runs += 1 #keep track of how many times fitness is evaluated
 
             fitnesses.append(fitness)
