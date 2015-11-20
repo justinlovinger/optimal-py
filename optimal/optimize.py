@@ -1,4 +1,4 @@
-###############################################################################
+﻿###############################################################################
 #The MIT License (MIT)
 #
 #Copyright (c) 2014 Justin Lovinger
@@ -21,8 +21,10 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 ###############################################################################
+"""General optimizer code for any specific algorithm."""
 
 import copy
+
 import helpers
 
 class Optimizer(object):
@@ -30,33 +32,29 @@ class Optimizer(object):
 
     def __init__(self, fitness_function, population_size=20, max_iterations=100,
                  **kwargs):
-        """Create an object that performs genetic algorithm optimization with a given fitness function.
+        """Initialize general optimization attributes and bookkeeping
 
         Args:
             fitness_function: A function representing the problem to solve, must return a fitness value.
             population_size: The number of solutions in every generation
             max_iterations: The number of iterations to optimize before stopping
         """
-        #set paramaters for users problem
-        self.fitness_function = fitness_function
-        self.additional_parameters = kwargs #parameters for the users fitness function
+        # Set paramaters for users problem
+        self._fitness_function = fitness_function
+        # Parameters for the users fitness function
+        self._additional_parameters = kwargs
 
-        #set general algorithm paramaters
+        # Set general algorithm paramaters
         self.population_size = population_size
         self.max_iterations = max_iterations
 
         # Parameters for metaheuristic optimization
         self.meta_parameters = {'population_size': {'type': 'int', 'min': 2, 'max': 1026}}
 
-        #enable logging by default
+        # Enable logging by default
         self.logging = True
 
-        #set initial values that are used internally
-        self.iteration = 0
-        self.evaluation_runs = 0
-        self.best_solution = None
-        self.best_fitness = None
-        self.solution_found = False
+        # Set initial values that are used internally
         self._clear_fitness_dict = True
         self._fitness_dict = {}
 
@@ -64,48 +62,80 @@ class Optimizer(object):
         self.initial_pop_args = []
         self.new_pop_args = []
 
+        # Bookkeeping
+        self.iteration = 0
+        self.evaluation_runs = 0
+        self.best_solution = None
+        self.best_fitness = None
+        self.solution_found = False
+
     def initialize(self):
+        """Initialize algorithm parameters before each optimization run.
+
+        This method is optional, but useful for some algorithms
+        """
         pass
 
     def create_initial_population(self, *args, **kwargs):
+        """Create the initial population before each optimization run."""
         raise NotImplementedError("create_initial_population is not implemented.")
 
-    def new_population(self, *args, **kwargs):
+    def new_population(self, population, fitnesses):
+        """Create a new population after each optimization iteration.
+
+        Args:
+            population: The population current population of solutions.
+            fitnesses: The fitness associated with each solution in the population
+        """
         raise NotImplementedError("new_population is not implemented.")
 
     def optimize(self):
         """Find the optimal inputs for a given fitness function.
-        
+
         Returns:
             list; The best solution, as it is encoded.
         """
+        # Reset bookkepping
+        self.evaluation_runs = 0
+        self.solution_found = False
+        self.best_solution = None
+        self.best_fitness = None
+
+        # Initialize algorithm
+        best_solution = {'solution': [], 'fitness': 0.0}
+        self.initialize()
+        population = self.create_initial_population(self.population_size)
+
         try:
-            self.evaluation_runs = 0
-            self.solution_found = False
-
-            best_solution = {'solution': [], 'fitness': 0.0}
-            self.initialize()
-            population = self.create_initial_population(self.population_size)
-
+            # Begin optimization loop
             for self.iteration in range(self.max_iterations):
                 fitnesses, finished = self.get_fitnesses(population)
+
+                # If the best fitness from this iteration is better than
+                # the global best
                 if max(fitnesses) > best_solution['fitness']:
+                    # Store the new best solution
                     best_solution['fitness'] = max(fitnesses)
-                    best_solution['solution'] = copy.copy(population[fitnesses.index(max(fitnesses))])
+                    best_index = fitnesses.index(best_solution['fitness'])
+                    best_solution['solution'] = population[best_index][:]
 
                 if self.logging:
-                    print ('Iteration: ' + str(self.iteration))
-                    print ('Avg Fitness: ' + str(sum(fitnesses)/len(fitnesses)))
-                    print ('Best Fitness: ' + str(best_solution['fitness']))
+                    print 'Iteration: ' + str(self.iteration)
+                    print 'Avg Fitness: ' + str(sum(fitnesses)/len(fitnesses))
+                    print 'Best Fitness: ' + str(best_solution['fitness'])
 
                 if finished:
                     self.solution_found = True
                     break
 
+                # Continue optimizing
                 population = self.new_population(population, fitnesses)
 
+            # Store best internally, before returning
             self.best_solution = best_solution['solution']
             self.best_fitness = best_solution['fitness']
+
+        # Always clear memory
         finally:
             if self._clear_fitness_dict:
                 self._fitness_dict = {} # Clear memory
@@ -124,7 +154,7 @@ class Optimizer(object):
             except KeyError:
                 #if the fitness is not remembered
                 #calculate the fitness, pass in any saved user arguments
-                fitness = self.fitness_function(solution, **self.additional_parameters)
+                fitness = self._fitness_function(solution, **self._additional_parameters)
                 #if the user supplied fitness function includes the "finished" flag
                 #unpack the results into the finished flag and the fitness
                 if isinstance(fitness, tuple):
@@ -140,17 +170,21 @@ class Optimizer(object):
         return fitnesses, finished
 
     def set_hyperparameters(self, parameters):
+        """Set internal optimization parameters."""
         for name, value in parameters.iteritems():
             setattr(self, name, value)
 
-    def meta_optimize(self, parameter_locks=None, problems=None,
+    def optimize_hyperparameters(self, parameter_locks=None, problems=None,
                       low_memory=True, smoothing=20):
         """Optimize hyperparameters for a given problem.
-        
+
         Args:
-            parameter_locks: a list of strings, each corrosponding to a hyperparamter that should not be optimized.
-            problems: list of fitness_function, arguments, pairs, allowing optimization based on multiple similar problems.
-            low_memory: disable performance enhancements to save memory (they use a lot of memory otherwise).
+            parameter_locks: a list of strings, each corresponding to a hyperparamter
+                             that should not be optimized.
+            problems: list of fitness_function, arguments, pairs,
+                      allowing optimization based on multiple similar problems.
+            low_memory: disable performance enhancements to save memory
+                        (they use a lot of memory otherwise).
             smoothing: int; number of runs to average over for each set of hyperparameters.
         """
         assert smoothing > 0
@@ -160,25 +194,25 @@ class Optimizer(object):
         import genalg
 
         # Copy to avoid permanent modification
-        meta_parameters = copy.deepcopy(self.meta_parameters) 
+        meta_parameters = copy.deepcopy(self.meta_parameters)
 
         # First, handle parameter locks, since it will modify our
         # meta_parameters dict
-        locked_values = _parse_parameter_locks(self, meta_parameters, 
-                                                parameter_locks)
+        locked_values = _parse_parameter_locks(self, meta_parameters,
+                                               parameter_locks)
 
-        # We need to know the size of our chromosome, 
+        # We need to know the size of our chromosome,
         # based on the hyperparameters to optimize
         solution_size = _get_hyperparameter_solution_size(meta_parameters)
 
-        # We also need to create a decode function to transform the binary solution 
+        # We also need to create a decode function to transform the binary solution
         # into parameters for the metaheuristic
         decode = _make_hyperparameter_decode_func(locked_values, meta_parameters)
-            
+
         # If the user does not specify a list of problems, default to using
         # only the problem in the optimizer
         if problems == None:
-            problems = [(self.fitness_function, self.additional_parameters)]
+            problems = [(self._fitness_function, self._additional_parameters)]
 
         # A master fitness dictionary can be stored for use between calls
         # to meta_fitness
@@ -189,11 +223,11 @@ class Optimizer(object):
 
         # Create metaheuristic with computed decode function and soltuion size
         meta_optimizer = genalg.GenAlg(_meta_fitness, solution_size,
-                                        _decode_func=decode,
-                                        _master_fitness_dict=master_fitness_dict,
-                                        _optimizer=self, _problems=problems,
-                                        _runs=smoothing)
-        
+                                       _decode_func=decode,
+                                       _master_fitness_dict=master_fitness_dict,
+                                       _optimizer=self, _problems=problems,
+                                       _runs=smoothing)
+
         # Determine the best hyperparameters with a metaheuristic
         best_solution = meta_optimizer.optimize()
         best_parameters = decode(best_solution)
@@ -205,20 +239,28 @@ class Optimizer(object):
         return best_parameters
 
 def _parse_parameter_locks(optimizer, meta_parameters, parameter_locks):
+    """Syncronize meta_parameters and locked_values.
+
+    The union of these two sets will have all necessary parameters.
+    locked_values will have the parameters specified in parameter_locks.
+    """
     # WARNING: meta_parameters is modified inline
 
     locked_values = {}
     if parameter_locks:
         for name in parameter_locks:
-            # store the current optimzier value
+            # Store the current optimzier value
             # and remove from our dictionary of paramaters to optimize
-            if parameter_locks and name in parameter_locks:
-                locked_values[name] = getattr(optimizer, name)
-                meta_parameters.pop(name)
+            locked_values[name] = getattr(optimizer, name)
+            meta_parameters.pop(name)
 
     return locked_values
 
 def _get_hyperparameter_solution_size(meta_parameters):
+    """Determine size of binary encoding of parameters.
+
+    Also adds binary size information for each parameter.
+    """
     # WARNING: meta_parameters is modified inline
 
     solution_size = 0
@@ -229,13 +271,13 @@ def _get_hyperparameter_solution_size(meta_parameters):
             binary_size = helpers.binary_size(num_values)
         elif parameters['type'] == 'int':
             # Use enough bits to cover range from min to max
-            range = parameters['max'] - parameters['min']
-            binary_size = helpers.binary_size(range)
+            int_range = parameters['max'] - parameters['min']
+            binary_size = helpers.binary_size(int_range)
         elif parameters['type'] == 'float':
             # Use enough bits to provide fine steps between min and max
-            range = parameters['max'] - parameters['min']
+            float_range = parameters['max'] - parameters['min']
             # * 1000 provides 1000 values between each natural number
-            binary_size = helpers.binary_size(range*1000)
+            binary_size = helpers.binary_size(float_range*1000)
         else:
             raise ValueError('Parameter type "{}" does not match known values'.format(parameters['type']))
 
@@ -247,6 +289,8 @@ def _get_hyperparameter_solution_size(meta_parameters):
     return solution_size
 
 def _make_hyperparameter_decode_func(locked_values, meta_parameters):
+    """Create a function that converts the binary solution to parameters."""
+
     # Locked parameters are also returned by decode function, but are not
     # based on solution
 
@@ -264,15 +308,16 @@ def _make_hyperparameter_decode_func(locked_values, meta_parameters):
 
             # Decode binary
             if parameters['type'] == 'discrete':
-                i = helpers.binary_to_int(binary, 
-                            max=len(parameters['values'])-1)
+                i = helpers.binary_to_int(binary, max=len(parameters['values'])-1)
                 value = parameters['values'][i]
             elif parameters['type'] == 'int':
-                value = helpers.binary_to_int(binary, 
-                            offset=parameters['min'], max=parameters['max'])
+                value = helpers.binary_to_int(binary,
+                                              offset=parameters['min'],
+                                              max=parameters['max'])
             elif parameters['type'] == 'float':
-                value = helpers.binary_to_float(binary, 
-                            minimum=parameters['min'], maximum=parameters['max'])
+                value = helpers.binary_to_float(binary,
+                                                minimum=parameters['min'],
+                                                maximum=parameters['max'])
             else:
                 raise ValueError('Parameter type "{}" does not match known values'.format(parameters['type']))
 
@@ -284,16 +329,16 @@ def _make_hyperparameter_decode_func(locked_values, meta_parameters):
     return decode
 
 def _meta_fitness(solution, _decode_func, _optimizer, _problems,
-                 _master_fitness_dict, _runs=20):
+                  _master_fitness_dict, _runs=20):
     """Test a metaheuristic with parameters encoded in solution.
-    
+
     Our goal is to minimize number of evaluation runs until a solution is found,
     while maximizing chance of finding solution to the underlying problem
-    NOTE: while meta optimization requires a 'known' solution, this solution 
+    NOTE: while meta optimization requires a 'known' solution, this solution
     can be an estimtate to provide the meta optimizer with a sense of progress.
     """
     parameters = _decode_func(solution)
-    
+
     # Create the optimizer with parameters encoded in solution
     optimizer = copy.deepcopy(_optimizer)
     optimizer.set_hyperparameters(parameters)
@@ -305,16 +350,16 @@ def _meta_fitness(solution, _decode_func, _optimizer, _problems,
     if _master_fitness_dict != None: # None means low memory mode
         optimizer._clear_fitness_dict = False
         optimizer._fitness_dict = _master_fitness_dict
-    
-    # Because metaheuristics are stochastic, we run the optimizer multiple times, 
+
+    # Because metaheuristics are stochastic, we run the optimizer multiple times,
     # to obtain an average of performance
     all_evaluation_runs = []
     solutions_found = []
     for i in range(_runs):
         for problem in _problems:
             # Set problem
-            optimizer.fitness_function = problem[0]
-            optimizer.additional_parameters = problem[1]
+            optimizer._fitness_function = problem[0]
+            optimizer._additional_parameters = problem[1]
 
             # Get performance for problem
             optimizer.optimize()

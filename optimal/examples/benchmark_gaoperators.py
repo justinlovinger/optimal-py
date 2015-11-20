@@ -1,4 +1,4 @@
-# For this example, we'll just compare the one point and uniform crossover operators
+﻿# For this example, we'll just compare the one point and uniform crossover operators
 
 # Perform a little hack to make sure the optimal library is visible from this script
 import os
@@ -32,8 +32,8 @@ def benchmark_multi(optimizer):
     for f in functions:
         # Set optimizer function
         # we can easily do this since all functions require the same solution size
-        optimizer.fitness_function = f['func']
-        optimizer.additional_parameters['decode_func'] = f['decode']
+        optimizer._fitness_function = f['func']
+        optimizer._additional_parameters['decode_func'] = f['decode']
         
         # Make a copy, or we'll only have one optimizer repeated in our list
         optimizers.append(copy.deepcopy(optimizer))

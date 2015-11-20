@@ -1,4 +1,4 @@
-###############################################################################
+﻿###############################################################################
 #The MIT License (MIT)
 #
 #Copyright (c) 2014 Justin Lovinger
@@ -129,7 +129,7 @@ def compare(optimizers, runs=20):
     for optimizer in optimizers:
         # For nice human readable dictionaries, extract useful names from optimizer
         class_name = optimizer.__class__.__name__
-        fitness_func_name = optimizer.fitness_function.__name__
+        fitness_func_name = optimizer._fitness_function.__name__
         key_name = '{} {}'.format(class_name, fitness_func_name)
         
         # Keep track of how many optimizers of each class / fitness func

@@ -1,4 +1,4 @@
-# We'll use genalg for these tests
+﻿# We'll use genalg for these tests
 # Individual algorithms will have their own (less comprehensive) meta_optimize tests
 
 from genalg import GenAlg
@@ -19,7 +19,7 @@ def test_meta_optimize_parameter_locks():
     original = copy.deepcopy(my_genalg)
 
     # Low smoothing for faster performance
-    my_genalg.meta_optimize(parameter_locks=parameter_locks, smoothing=1)
+    my_genalg.optimize_hyperparameters(parameter_locks=parameter_locks, smoothing=1)
 
     # Check that mutation chance changed
     assert my_genalg.mutation_chance != original.mutation_chance
