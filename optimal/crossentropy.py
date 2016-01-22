@@ -1,8 +1,9 @@
 import random
-import numpy
 import math
 
-import optimize
+import numpy
+
+from optimal import optimize
 
 class CrossEntropy(optimize.Optimizer):
 
@@ -125,18 +126,3 @@ def update_pdf(population, fitnesses, pdfs, quantile):
 
     # Then check all of our possible pdfs with a stochastic program
     return best_pdf(pdfs, population, fitnesses, fitness_threshold)
-
-if __name__ == '__main__':
-    """Example usage of this library.
-    
-    See examplefunctions.py for instructions on how to create a fitness function
-    """
-    import examplefunctions
-
-    # Setup and run the probabilistic evolution, using our fitness function, 
-    # and a chromosome size of 32
-    # Additional fitness function arguments are added as keyword arguments
-    ce = CrossEntropy(examplefunctions.ackley, 32, 
-                       decode_func=examplefunctions.ackley_binary)
-    best_solution = ce.optimize()
-    print examplefunctions.ackley_binary(best_solution)

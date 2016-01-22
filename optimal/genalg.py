@@ -25,8 +25,7 @@
 import random
 import copy
 
-import gaoperators
-import optimize
+from optimal import gaoperators, optimize
 
 class GenAlg(optimize.Optimizer):
     """Canonical Genetic Algorithm
@@ -173,18 +172,3 @@ def crossover(population, crossover_chance, crossover_operator):
             new_population.append(parents[1][:])
 
     return new_population
-
-if __name__ == '__main__':
-    """Example usage of this library.
-    
-    See examplefunctions.py for instructions on how to create a fitness function
-    """
-    import examplefunctions
-
-    # Setup and run the genetic algorithm, using our fitness function, 
-    # and a chromosome size of 32
-    # Additional fitness function arguments are added as keyword arguments
-    my_genalg = GenAlg(examplefunctions.ackley, 32, 
-                       decode_func=examplefunctions.ackley_binary)
-    best_chromosome = my_genalg.optimize()
-    print examplefunctions.ackley_binary(best_chromosome)

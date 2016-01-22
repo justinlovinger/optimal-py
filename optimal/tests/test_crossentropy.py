@@ -1,6 +1,6 @@
 import pytest
 
-import crossentropy
+from optimal import crossentropy, examplefunctions, optimize
 
 @pytest.mark.parametrize('solution,pdf,expected', [
         ([1, 1, 1], [1.0, 1.0, 1.0], 1.0),
@@ -33,4 +33,18 @@ def test_pdf_value():
     assert 0
 
 def test_best_pdf():
+    assert 0
+
+def test_crossentropy_problems():
+    # Attempt to solve various problems
+    # Assert that the optimizer can find the solutions
+    optimizer = crossentropy.CrossEntropy(examplefunctions.ackley, 32, max_iterations=1000,
+                                          decode_func=examplefunctions.ackley_binary)
+    optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
+    optimizer.optimize()
+    assert optimizer.solution_found
+
+    # TODO: test other functions
+
+def test_metaoptimize_crossentropy():
     assert 0

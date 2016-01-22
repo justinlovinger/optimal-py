@@ -22,9 +22,10 @@
 #SOFTWARE.
 ###############################################################################
 
-import helpers
 import math
 import functools
+
+from optimal import helpers
 
 def decode_binary(binary, min_, max_):
     # Helpful functions from helpers are used to convert binary to floats

@@ -25,7 +25,13 @@
 
 import copy
 
-import helpers
+from optimal import helpers
+
+def _print_fitnesses(iteration, fitnesses, best_solution, frequency=1):
+    if iteration == 1 or iteration % frequency == 0:
+        print 'Iteration: ' + str(iteration)
+        print 'Avg Fitness: ' + str(sum(fitnesses)/len(fitnesses))
+        print 'Best Fitness: ' + str(best_solution['fitness'])
 
 class Optimizer(object):
     """Base class for optimization algorithms."""
@@ -53,6 +59,7 @@ class Optimizer(object):
 
         # Enable logging by default
         self.logging = True
+        self._logging_func = _print_fitnesses
 
         # Set initial values that are used internally
         self._clear_fitness_dict = True
@@ -108,8 +115,8 @@ class Optimizer(object):
 
         try:
             # Begin optimization loop
-            for self.iteration in range(self.max_iterations):
-                fitnesses, finished = self.get_fitnesses(population)
+            for self.iteration in range(1, self.max_iterations+1):
+                fitnesses, finished = self._get_fitnesses(population)
 
                 # If the best fitness from this iteration is better than
                 # the global best
@@ -119,11 +126,9 @@ class Optimizer(object):
                     best_index = fitnesses.index(best_solution['fitness'])
                     best_solution['solution'] = population[best_index][:]
 
-                if self.logging:
-                    print 'Iteration: ' + str(self.iteration)
-                    print 'Avg Fitness: ' + str(sum(fitnesses)/len(fitnesses))
-                    print 'Best Fitness: ' + str(best_solution['fitness'])
-
+                if self.logging and self._logging_func:
+                    self._logging_func(self.iteration, fitnesses, best_solution)
+                    
                 if finished:
                     self.solution_found = True
                     break
@@ -142,7 +147,7 @@ class Optimizer(object):
 
         return self.best_solution
 
-    def get_fitnesses(self, population):
+    def _get_fitnesses(self, population):
         """Get the fitness for every solution in a population."""
         fitnesses = []
         finished = False
@@ -169,13 +174,13 @@ class Optimizer(object):
 
         return fitnesses, finished
 
-    def set_hyperparameters(self, parameters):
+    def _set_hyperparameters(self, parameters):
         """Set internal optimization parameters."""
         for name, value in parameters.iteritems():
             setattr(self, name, value)
 
     def optimize_hyperparameters(self, parameter_locks=None, problems=None,
-                      low_memory=True, smoothing=20):
+                                 max_iterations=100, smoothing=20, low_memory=True):
         """Optimize hyperparameters for a given problem.
 
         Args:
@@ -233,7 +238,7 @@ class Optimizer(object):
         best_parameters = decode(best_solution)
 
         # Set the hyperparameters inline
-        self.set_hyperparameters(best_parameters)
+        self._set_hyperparameters(best_parameters)
 
         # And return
         return best_parameters
@@ -341,7 +346,7 @@ def _meta_fitness(solution, _decode_func, _optimizer, _problems,
 
     # Create the optimizer with parameters encoded in solution
     optimizer = copy.deepcopy(_optimizer)
-    optimizer.set_hyperparameters(parameters)
+    optimizer._set_hyperparameters(parameters)
     optimizer.logging = False
 
     # Preload fitness dictionary from master, and disable clearing dict

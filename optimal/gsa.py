@@ -22,10 +22,12 @@
 #SOFTWARE.
 ###############################################################################
 
-import optimize
 import random
-import numpy
 import math
+
+import numpy
+
+from optimal import optimize
 
 epsilon = 0.0000001
 
@@ -247,15 +249,3 @@ def gsa_update_velocity(v_i, a_i):
 
 def gsa_update_position(x_i, v_i):
     return numpy.add(x_i, v_i)
-
-if __name__ == '__main__':
-    """Example usage of this library."""
-    import examplefunctions
-
-    #Setup and run the gsa, using our fitness function, 
-    # and a search range from -5.0 to 5.0
-    #Additional fitness function arguments are added as keyword arguments
-    my_gsa = GSA(examplefunctions.ackley, 2, [-5.0]*2, [5.0]*2, 
-                 decode_func=examplefunctions.decode_real)
-    best_solution = my_gsa.optimize()
-    print best_solution

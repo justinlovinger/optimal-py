@@ -1,7 +1,7 @@
 ﻿# We'll use genalg for these tests
 # Individual algorithms will have their own (less comprehensive) meta_optimize tests
 
-from genalg import GenAlg
+from optimal.genalg import GenAlg
 import copy
 
 def simple_function(binary):
