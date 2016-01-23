@@ -22,8 +22,18 @@
 #SOFTWARE.
 ###############################################################################
 
-from optimal import gsa, examplefunctions, optimize
+import pytest
 
+from optimal import gsa, examplefunctions, optimize, genalg
+
+def test_gsa_sphere():
+    optimizer = gsa.GSA(examplefunctions.sphere, 2, [-5.0]*2, [5.0]*2, max_iterations=1000,
+                        decode_func=examplefunctions.decode_real)
+    optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
+    optimizer.optimize()
+    assert optimizer.solution_found
+
+@pytest.mark.slowtest()
 def test_gsa_problems():
     # Attempt to solve various problems
     # Assert that the optimizer can find the solutions
@@ -35,5 +45,20 @@ def test_gsa_problems():
 
     # TODO: test other functions
 
+@pytest.mark.slowtest()
 def test_metaoptimize_gsa():
-    assert 0
+    optimizer = gsa.GSA(examplefunctions.ackley, 2, [-5.0]*2, [5.0]*2, max_iterations=1000,
+                        decode_func=examplefunctions.decode_real)
+    optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
+    prev_hyperparameters = optimizer._get_hyperparameters()
+
+    # Test without metaoptimize, save iterations to solution
+    optimizer.optimize()
+    iterations_to_solution = optimizer.iteration
+
+    # Test with metaoptimize, assert that iterations to solution is lower
+    optimizer.optimize_hyperparameters(smoothing=1, _meta_optimizer=genalg.GenAlg(None, None, 1, 1))
+    optimizer.optimize()
+
+    assert optimizer._get_hyperparameters() != prev_hyperparameters
+    #assert optimizer.iteration < iterations_to_solution # Improvements are made

@@ -37,6 +37,18 @@ def decode_real(values):
     return values
 
 ###########################
+# Sphere
+##########################
+
+def sphere(solution, decode_func):
+    x1, x2 = decode_func(solution)
+
+    output = x1**2 + x2**2
+
+    finished = output <= 0.01
+    return 1.0 / output, finished
+
+###########################
 # Ackley
 ##########################
 ACKLEY_MIN = -5.0
@@ -48,7 +60,7 @@ ackley_binary = functools.partial(decode_binary, min_=ACKLEY_MIN, max_=ACKLEY_MA
 # Additional arguments can optionally come after
 # The optimizer will feed additional arguements to this function
 def ackley(solution, decode_func): 
-    #Turn our chromosome of bits into floating point values
+    #Turn our solution of bits into floating point values
     x1, x2 = decode_func(solution)
 
     # Ackley's function

@@ -23,4 +23,4 @@
 ###############################################################################
 import pytest
 
-pytest.main('-m "not webtest and not slowtest"')
+pytest.main()

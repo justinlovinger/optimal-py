@@ -38,6 +38,9 @@
     <Compile Include="gsa.py" />
     <Compile Include="optimize.py" />
     <Compile Include="tests\testall.py" />
+    <Compile Include="tests\testallslow.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="tests\test_crossentropy.py" />
     <Compile Include="tests\test_genalg.py">
       <SubType>Code</SubType>
