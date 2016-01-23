@@ -27,10 +27,10 @@ import copy
 
 from optimal import gaoperators, optimize
 
-class GenAlg(optimize.Optimizer):
+class GenAlg(optimize.StandardOptimizer):
     """Canonical Genetic Algorithm
     
-    Peform genetic algorithm optimization with a given fitness function."""
+    Perform genetic algorithm optimization with a given fitness function."""
 
     def __init__(self, fitness_function, chromosome_size, population_size=20, 
                  max_iterations=100, mutation_chance=0.02, crossover_chance=0.7, 
@@ -49,40 +49,32 @@ class GenAlg(optimize.Optimizer):
             selection_function: A function that will select parents for crossover and mutation
             crossover_function: A function that will cross two parents
         """
-        optimize.Optimizer.__init__(self, fitness_function, population_size, 
-                                    max_iterations, **kwargs)
-
-        #set paramaters for users problem
-        self.solution_size = chromosome_size
-
+        super(GenAlg, self).__init__(fitness_function, chromosome_size, population_size,
+                                     max_iterations, **kwargs)
+        
         #set genetic algorithm paramaters
-        self.mutation_chance = mutation_chance
-        self.crossover_chance = crossover_chance
-        self.selection_function = selection_function
-        self.crossover_function = crossover_function
-
-        # GenAlg function parameters
-        self.initial_pop_args = [self.solution_size]
-        self.new_pop_args = [self.mutation_chance, self.crossover_chance, 
-                             self.selection_function, self.crossover_function]
+        self._mutation_chance = mutation_chance
+        self._crossover_chance = crossover_chance
+        self._selection_function = selection_function
+        self._crossover_function = crossover_function
 
         # Meta optimize parameters
-        self.meta_parameters['mutation_chance'] = {'type': 'float', 'min': 0.0, 'max': 1.0}
-        self.meta_parameters['crossover_chance'] = {'type': 'float', 'min': 0.0, 'max': 1.0}
-        self.meta_parameters['selection_function'] = {'type': 'discrete', 
-                                        'values': [gaoperators.roulette_selection,
-                                                   gaoperators.stochastic_selection]}
-        self.meta_parameters['crossover_function'] = {'type': 'discrete', 
-                                        'values': [gaoperators.one_point_crossover,
-                                                   gaoperators.uniform_crossover]}
+        self._meta_parameters['_mutation_chance'] = {'type': 'float', 'min': 0.0, 'max': 1.0}
+        self._meta_parameters['_crossover_chance'] = {'type': 'float', 'min': 0.0, 'max': 1.0}
+        self._meta_parameters['_selection_function'] = {'type': 'discrete', 
+                                                        'values': [gaoperators.roulette_selection,
+                                                                   gaoperators.stochastic_selection]}
+        self._meta_parameters['_crossover_function'] = {'type': 'discrete', 
+                                                        'values': [gaoperators.one_point_crossover,
+                                                                   gaoperators.uniform_crossover]}
 
-    def create_initial_population(self, population_size):
-        return create_initial_population(population_size, self.solution_size)
+    def create_initial_population(self):
+        return create_initial_population(self._population_size, self.solution_size)
 
     def new_population(self, population, fitnesses):
         return new_population(population, fitnesses, 
-                              self.mutation_chance, self.crossover_chance, 
-                              self.selection_function, self.crossover_function)
+                              self._mutation_chance, self._crossover_chance, 
+                              self._selection_function, self._crossover_function)
 
 def create_initial_population(population_size, chromosome_length):
     """Create a random initial population of chromosomes.

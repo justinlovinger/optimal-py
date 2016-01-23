@@ -30,18 +30,15 @@ import numpy
 
 from optimal import optimize
 
-class CrossEntropy(optimize.Optimizer):
+class CrossEntropy(optimize.StandardOptimizer):
 
     def __init__(self, fitness_function, solution_size,
                  population_size = 20, max_iterations = 100, 
                  pdfs=None, quantile=0.9,
                  **kwargs):
-        optimize.Optimizer.__init__(self, fitness_function, population_size, 
-                                    max_iterations, **kwargs)
+        super(CrossEntropy, self).__init__(fitness_function, solution_size, population_size,
+                                           max_iterations, **kwargs)
         
-        # Parameters for user problem
-        self.solution_size = solution_size
-
         # Cross entropy variables
         if pdfs:
             self.pdfs = pdfs
@@ -53,37 +50,37 @@ class CrossEntropy(optimize.Optimizer):
         # Quantile is easier to use as an index offset (from max)
         # Higher the quantile, the smaller this offset
         # Setter will automatically set this offset
-        self._quantile = None
-        self._quantile_offset = None
-        self.quantile = quantile
+        self.__quantile = None
+        self.__quantile_offset = None
+        self._quantile = quantile
 
         # Meta optimize parameters
-        self.meta_parameters['quantile'] = {'type': 'float', 'min': 0.0, 'max': 1.0}
+        self._meta_parameters['_quantile'] = {'type': 'float', 'min': 0.0, 'max': 1.0}
 
     def initialize(self):
         # Start with a random pdf
         self.pdf = random.choice(self.pdfs)
 
-    def create_initial_population(self, population_size):
+    def create_initial_population(self):
         # Initial population is a uniform random sample
-        return sample(self.pdf, population_size)
+        return sample(self.pdf, self._population_size)
 
     def new_population(self, population, fitnesses):
         # Update pdf, then sample new population
-        self.pdf = update_pdf(population, fitnesses, self.pdfs, self._quantile_offset)
+        self.pdf = update_pdf(population, fitnesses, self.pdfs, self.__quantile_offset)
 
         # New population is randomly sampled, independent of old population
-        return sample(self.pdf, self.population_size)
+        return sample(self.pdf, self._population_size)
 
     # Setters and getters for quantile, so quantile_offset is automatically set
     @property
-    def quantile(self):
-        return self._quantile
+    def _quantile(self):
+        return self.__quantile
 
-    @quantile.setter
-    def quantile(self, value):
-        self._quantile = value
-        self._quantile_offset = get_quantile_offset(self.population_size, value)
+    @_quantile.setter
+    def _quantile(self, value):
+        self.__quantile = value
+        self.__quantile_offset = get_quantile_offset(self._population_size, value)
 
 def get_quantile_offset(num_values, quantile):
     return int((num_values-1) * (1.0-quantile))

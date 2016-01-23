@@ -31,7 +31,7 @@ from optimal import optimize
 
 epsilon = 0.0000001
 
-class GSA(optimize.Optimizer):
+class GSA(optimize.StandardOptimizer):
     """Gravitational Search Algorithm
     
     Peform graviational search algorithm optimization with a given fitness function."""
@@ -50,37 +50,37 @@ class GSA(optimize.Optimizer):
             population_size: The number of potential solutions in every generation
             max_iterations: The number of iterations to optimize before stopping
         """
-        optimize.Optimizer.__init__(self, fitness_function, population_size, 
-                                    max_iterations, **kwargs)
+        super(GSA, self).__init__(fitness_function, solution_size, population_size, 
+                                  max_iterations, **kwargs)
 
         #set paramaters for users problem
-        self.solution_size = solution_size
-        self.lower_bounds = lower_bounds
-        self.upper_bounds = upper_bounds
+        self._lower_bounds = lower_bounds
+        self._upper_bounds = upper_bounds
 
         # GSA variables
-        self.G_initial = G_initial
-        self.G_reduction_rate = G_reduction_rate
-        self.velocities = [[0.0]*self.solution_size]*self.population_size
+        self._G_initial = G_initial
+        self._G_reduction_rate = G_reduction_rate
+        self._velocities = None
+        self.initialize()
 
     def initialize(self):
         # Intialize GSA variables
-        self.velocities = [[0.0]*self.solution_size]*self.population_size
+        self._velocities = [[0.0]*self.solution_size]*self._population_size
 
-    def create_initial_population(self, population_size):
-        return create_initial_population(population_size, self.solution_size,
-                                         self.lower_bounds, self.upper_bounds)
+    def create_initial_population(self):
+        return create_initial_population(self._population_size, self.solution_size,
+                                         self._lower_bounds, self._upper_bounds)
 
     def new_population(self, population, fitnesses):
-        new_pop, new_velocities = new_population(population, fitnesses, self.velocities,
-                                                 self.lower_bounds, self.upper_bounds,
-                                                 self.G_initial, self.G_reduction_rate,
-                                                 self.iteration, self.max_iterations)
-        self.velocities = new_velocities
+        new_pop, new_velocities = new_population(population, fitnesses, self._velocities,
+                                                 self._lower_bounds, self._upper_bounds,
+                                                 self._G_initial, self._G_reduction_rate,
+                                                 self.iteration, self._max_iterations)
+        self._velocities = new_velocities
         return new_pop
 
 def create_initial_population(population_size, solution_size, 
-                                  lower_bounds, upper_bounds):
+                              lower_bounds, upper_bounds):
     """Create a random initial population of floating point values.
 
     Args:

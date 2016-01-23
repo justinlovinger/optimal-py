@@ -36,8 +36,7 @@ def _print_fitnesses(iteration, fitnesses, best_solution, frequency=1):
 class Optimizer(object):
     """Base class for optimization algorithms."""
 
-    def __init__(self, fitness_function, population_size=20, max_iterations=100,
-                 **kwargs):
+    def __init__(self, fitness_function, max_iterations=100, **kwargs):
         """Initialize general optimization attributes and bookkeeping
 
         Args:
@@ -47,29 +46,34 @@ class Optimizer(object):
         """
         # Set paramaters for users problem
         self._fitness_function = fitness_function
-        # Parameters for the users fitness function
-        self._additional_parameters = kwargs
+        self._additional_parameters = kwargs # Parameters for the users fitness function
 
         # Set general algorithm paramaters
-        self.population_size = population_size
-        self.max_iterations = max_iterations
+        self._max_iterations = max_iterations
 
         # Parameters for metaheuristic optimization
-        self.meta_parameters = {'population_size': {'type': 'int', 'min': 2, 'max': 1026}}
+        self._meta_parameters = {}
 
         # Enable logging by default
         self.logging = True
         self._logging_func = _print_fitnesses
 
         # Set initial values that are used internally
-        self._clear_fitness_dict = True
-        self._fitness_dict = {}
-
-        # Parameters for algorithm specific functions
-        self.initial_pop_args = []
-        self.new_pop_args = []
+        self.__clear_fitness_dict = True
+        self.__fitness_dict = {}
 
         # Bookkeeping
+        self.iteration = 0
+        self.evaluation_runs = 0
+        self.best_solution = None
+        self.best_fitness = None
+        self.solution_found = False
+
+    def __reset_bookkeeping(self):
+        """Reset bookkeeping parameters to initial values.
+
+        Call before beginning optimization.
+        """
         self.iteration = 0
         self.evaluation_runs = 0
         self.best_solution = None
@@ -83,8 +87,12 @@ class Optimizer(object):
         """
         pass
 
-    def create_initial_population(self, *args, **kwargs):
-        """Create the initial population before each optimization run."""
+    def create_initial_population(self):
+        """Create the initial population before each optimization run.
+        
+        Returns:
+            list; a list of solutions.
+        """
         raise NotImplementedError("create_initial_population is not implemented.")
 
     def new_population(self, population, fitnesses):
@@ -93,6 +101,8 @@ class Optimizer(object):
         Args:
             population: The population current population of solutions.
             fitnesses: The fitness associated with each solution in the population
+        Returns:
+            list; a list of solutions.
         """
         raise NotImplementedError("new_population is not implemented.")
 
@@ -102,21 +112,17 @@ class Optimizer(object):
         Returns:
             list; The best solution, as it is encoded.
         """
-        # Reset bookkepping
-        self.evaluation_runs = 0
-        self.solution_found = False
-        self.best_solution = None
-        self.best_fitness = None
+        self.__reset_bookkeeping()
 
         # Initialize algorithm
         best_solution = {'solution': [], 'fitness': 0.0}
         self.initialize()
-        population = self.create_initial_population(self.population_size)
+        population = self.create_initial_population()
 
         try:
             # Begin optimization loop
-            for self.iteration in range(1, self.max_iterations+1):
-                fitnesses, finished = self._get_fitnesses(population)
+            for self.iteration in range(1, self._max_iterations+1):
+                fitnesses, finished = self.__get_fitnesses(population)
 
                 # If the best fitness from this iteration is better than
                 # the global best
@@ -142,12 +148,12 @@ class Optimizer(object):
 
         # Always clear memory
         finally:
-            if self._clear_fitness_dict:
-                self._fitness_dict = {} # Clear memory
+            if self.__clear_fitness_dict:
+                self.__fitness_dict = {} # Clear memory
 
         return self.best_solution
 
-    def _get_fitnesses(self, population):
+    def __get_fitnesses(self, population):
         """Get the fitness for every solution in a population."""
         fitnesses = []
         finished = False
@@ -155,7 +161,7 @@ class Optimizer(object):
             str_solution = str(solution)
             try:
                 #attempt to retrieve the fitness from the internal fitness memory
-                fitness = self._fitness_dict[str_solution]
+                fitness = self.__fitness_dict[str_solution]
             except KeyError:
                 #if the fitness is not remembered
                 #calculate the fitness, pass in any saved user arguments
@@ -165,7 +171,7 @@ class Optimizer(object):
                 if isinstance(fitness, tuple):
                     finished = fitness[1]
                     fitness = fitness[0]
-                self._fitness_dict[str_solution] = fitness
+                self.__fitness_dict[str_solution] = fitness
                 self.evaluation_runs += 1 #keep track of how many times fitness is evaluated
 
             fitnesses.append(fitness)
@@ -177,12 +183,17 @@ class Optimizer(object):
     def _set_hyperparameters(self, parameters):
         """Set internal optimization parameters."""
         for name, value in parameters.iteritems():
+            try:
+                getattr(self, name)
+            except AttributeError:
+                raise ValueError('Each parameter in parameters must be an attribute. ' \
+                                 '{} is not.'.format(name))
             setattr(self, name, value)
 
     def _get_hyperparameters(self):
         """Get internal optimization parameters."""
         hyperparameters = {}
-        for key in self.meta_parameters:
+        for key in self._meta_parameters:
             hyperparameters[key] = getattr(self, key)
         return hyperparameters
 
@@ -209,7 +220,7 @@ class Optimizer(object):
         import genalg
 
         # Copy to avoid permanent modification
-        meta_parameters = copy.deepcopy(self.meta_parameters)
+        meta_parameters = copy.deepcopy(self._meta_parameters)
 
         # First, handle parameter locks, since it will modify our
         # meta_parameters dict
@@ -261,6 +272,27 @@ class Optimizer(object):
 
         # And return
         return best_parameters
+
+class StandardOptimizer(Optimizer):
+    """Adds support for standard metaheuristic hyperparameters."""
+    def __init__(self, fitness_function, solution_size, population_size=20, 
+                 max_iterations=100, **kwargs):
+        """Initialize general optimization attributes and bookkeeping
+
+        Args:
+            fitness_function: A function representing the problem to solve, must return a fitness value.
+            solution_size: The number of values in each solution.
+            population_size: The number of solutions in every generation
+            max_iterations: The number of iterations to optimize before stopping
+        """
+        super(StandardOptimizer, self).__init__(fitness_function, max_iterations, **kwargs)
+
+        # Set general algorithm paramaters
+        self.solution_size = solution_size
+        self._population_size = population_size
+
+        # Parameters for metaheuristic optimization
+        self._meta_parameters['_population_size'] = {'type': 'int', 'min': 2, 'max': 1026}
 
 def _parse_parameter_locks(optimizer, meta_parameters, parameter_locks):
     """Syncronize meta_parameters and locked_values.
@@ -359,7 +391,7 @@ def _meta_fitness(solution, _decode_func, _optimizer, _problems,
     Our goal is to minimize number of evaluation runs until a solution is found,
     while maximizing chance of finding solution to the underlying problem
     NOTE: while meta optimization requires a 'known' solution, this solution
-    can be an estimtate to provide the meta optimizer with a sense of progress.
+    can be an estimate to provide the meta optimizer with a sense of progress.
     """
     parameters = _decode_func(solution)
 
@@ -372,8 +404,8 @@ def _meta_fitness(solution, _decode_func, _optimizer, _problems,
     # NOTE: master_fitness_dict will be modified inline, and therefore,
     # we do not need to take additional steps to update it
     if _master_fitness_dict != None: # None means low memory mode
-        optimizer._clear_fitness_dict = False
-        optimizer._fitness_dict = _master_fitness_dict
+        optimizer._Optimizer__clear_fitness_dict = False
+        optimizer._Optimizer__fitness_dict = _master_fitness_dict
 
     # Because metaheuristics are stochastic, we run the optimizer multiple times,
     # to obtain an average of performance

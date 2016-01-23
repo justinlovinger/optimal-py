@@ -24,6 +24,8 @@
 
 import copy
 
+import pytest
+
 from optimal import optimize
 from optimal.genalg import GenAlg
 
@@ -32,18 +34,24 @@ def simple_function(binary):
     return float(binary[0])+float(binary[1])+0.001, finished
 
 def test_get_hyperparameters():
-    optimizer = optimize.Optimizer(simple_function)
+    optimizer = optimize.StandardOptimizer(simple_function, 2)
 
     hyperparameters = optimizer._get_hyperparameters()
     assert hyperparameters != None
-    assert hyperparameters['population_size']
+    assert hyperparameters['_population_size']
+
+def test_set_hyperparameters_wrong_parameter():
+    optimizer = optimize.StandardOptimizer(simple_function, 2)
+
+    with pytest.raises(ValueError):
+        optimizer._set_hyperparameters({'test': None})
 
 def test_meta_optimize_parameter_locks():
     # Run meta optimize with locks
     # assert that locked parameters did not change
 
     # Only optimize mutation chance
-    parameter_locks=['population_size', 'crossover_chance', 'selection_function', 'crossover_function']
+    parameter_locks=['_population_size', '_crossover_chance', '_selection_function', '_crossover_function']
 
     my_genalg = GenAlg(simple_function, 2)
     original = copy.deepcopy(my_genalg)
@@ -52,7 +60,7 @@ def test_meta_optimize_parameter_locks():
     my_genalg.optimize_hyperparameters(parameter_locks=parameter_locks, smoothing=1)
 
     # Check that mutation chance changed
-    assert my_genalg.mutation_chance != original.mutation_chance
+    assert my_genalg._mutation_chance != original._mutation_chance
 
     # And all others stayed the same
     for parameter in parameter_locks:
