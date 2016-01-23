@@ -21,6 +21,7 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 ###############################################################################
+import pytest
 
 from optimal import genalg, examplefunctions, optimize
 
@@ -35,16 +36,20 @@ def test_genalg_problems():
 
     # TODO: test other functions
 
+@pytest.mark.slowtest()
 def test_metaoptimize_genalg():
     optimizer = genalg.GenAlg(examplefunctions.ackley, 32, 
                               decode_func=examplefunctions.ackley_binary)
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
-    
+    prev_hyperparameters = optimizer._get_hyperparameters()
+
     # Test without metaoptimize, save iterations to solution
     optimizer.optimize()
     iterations_to_solution = optimizer.iteration
 
     # Test with metaoptimize, assert that iterations to solution is lower
-    optimizer.optimize_hyperparameters(max_iterations=10 ,smoothing=5)
+    optimizer.optimize_hyperparameters(smoothing=1, _meta_optimizer=genalg.GenAlg(None, None, 1, 1))
     optimizer.optimize()
-    assert optimizer.iteration < iterations_to_solution
+
+    assert optimizer._get_hyperparameters() != prev_hyperparameters
+    #assert optimizer.iteration < iterations_to_solution # Improvements are made

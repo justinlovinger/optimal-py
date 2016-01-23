@@ -1,4 +1,4 @@
-﻿###############################################################################
+###############################################################################
 #The MIT License (MIT)
 #
 #Copyright (c) 2014 Justin Lovinger
@@ -22,15 +22,21 @@
 #SOFTWARE.
 ###############################################################################
 
-# We'll use genalg for these tests
-# Individual algorithms will have their own (less comprehensive) meta_optimize tests
-
-from optimal.genalg import GenAlg
 import copy
+
+from optimal import optimize
+from optimal.genalg import GenAlg
 
 def simple_function(binary):
     finished = binary[0] and binary[1]
     return float(binary[0])+float(binary[1])+0.001, finished
+
+def test_get_hyperparameters():
+    optimizer = optimize.Optimizer(simple_function)
+
+    hyperparameters = optimizer._get_hyperparameters()
+    assert hyperparameters != None
+    assert hyperparameters['population_size']
 
 def test_meta_optimize_parameter_locks():
     # Run meta optimize with locks

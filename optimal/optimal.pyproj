@@ -45,7 +45,9 @@
     <Compile Include="tests\test_gsa.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="tests\test_meta_optimize.py" />
+    <Compile Include="tests\test_optimize.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="__init__.py" />
   </ItemGroup>
   <ItemGroup>

@@ -179,8 +179,15 @@ class Optimizer(object):
         for name, value in parameters.iteritems():
             setattr(self, name, value)
 
+    def _get_hyperparameters(self):
+        """Get internal optimization parameters."""
+        hyperparameters = {}
+        for key in self.meta_parameters:
+            hyperparameters[key] = getattr(self, key)
+        return hyperparameters
+
     def optimize_hyperparameters(self, parameter_locks=None, problems=None,
-                                 max_iterations=100, smoothing=20, low_memory=True):
+                                 smoothing=20, _meta_optimizer=None, _low_memory=True):
         """Optimize hyperparameters for a given problem.
 
         Args:
@@ -192,7 +199,10 @@ class Optimizer(object):
                         (they use a lot of memory otherwise).
             smoothing: int; number of runs to average over for each set of hyperparameters.
         """
-        assert smoothing > 0
+        #TODO: allow meta_optimizer parameter, which allows user to supply hyperparameter optimizer
+
+        if smoothing <= 0:
+            raise ValueError('smoothing must be > 0')
 
         # Initialize default meta optimizer
         # GenAlg is used because it supports both discrete and continous attributes
@@ -221,20 +231,29 @@ class Optimizer(object):
 
         # A master fitness dictionary can be stored for use between calls
         # to meta_fitness
-        if low_memory:
+        if _low_memory:
             master_fitness_dict = None
         else:
             master_fitness_dict = {}
 
-        # Create metaheuristic with computed decode function and soltuion size
-        meta_optimizer = genalg.GenAlg(_meta_fitness, solution_size,
-                                       _decode_func=decode,
-                                       _master_fitness_dict=master_fitness_dict,
-                                       _optimizer=self, _problems=problems,
-                                       _runs=smoothing)
+        additional_parameters = {
+                                 '_decode_func': decode,
+                                 '_optimizer': self,
+                                 '_problems': problems,
+                                 '_runs': smoothing,
+                                 '_master_fitness_dict': master_fitness_dict,
+                                }
+        if _meta_optimizer == None:
+            # Create metaheuristic with computed decode function and soltuion size
+            _meta_optimizer = genalg.GenAlg(_meta_fitness, solution_size, **additional_parameters)
+        else:
+            # Adjust supplied metaheuristic for this problem
+            _meta_optimizer._fitness_function = _meta_fitness
+            _meta_optimizer.solution_size = solution_size
+            _meta_optimizer._additional_parameters = additional_parameters
 
         # Determine the best hyperparameters with a metaheuristic
-        best_solution = meta_optimizer.optimize()
+        best_solution = _meta_optimizer.optimize()
         best_parameters = decode(best_solution)
 
         # Set the hyperparameters inline

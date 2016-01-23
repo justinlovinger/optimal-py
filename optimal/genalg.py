@@ -53,7 +53,7 @@ class GenAlg(optimize.Optimizer):
                                     max_iterations, **kwargs)
 
         #set paramaters for users problem
-        self.chromosome_size = chromosome_size
+        self.solution_size = chromosome_size
 
         #set genetic algorithm paramaters
         self.mutation_chance = mutation_chance
@@ -62,7 +62,7 @@ class GenAlg(optimize.Optimizer):
         self.crossover_function = crossover_function
 
         # GenAlg function parameters
-        self.initial_pop_args = [self.chromosome_size]
+        self.initial_pop_args = [self.solution_size]
         self.new_pop_args = [self.mutation_chance, self.crossover_chance, 
                              self.selection_function, self.crossover_function]
 
@@ -77,7 +77,7 @@ class GenAlg(optimize.Optimizer):
                                                    gaoperators.uniform_crossover]}
 
     def create_initial_population(self, population_size):
-        return create_initial_population(population_size, self.chromosome_size)
+        return create_initial_population(population_size, self.solution_size)
 
     def new_population(self, population, fitnesses):
         return new_population(population, fitnesses, 

@@ -24,6 +24,7 @@
 
 import random
 import math
+import operator
 
 import numpy
 
@@ -52,6 +53,8 @@ class CrossEntropy(optimize.Optimizer):
         # Quantile is easier to use as an index offset (from max)
         # Higher the quantile, the smaller this offset
         # Setter will automatically set this offset
+        self._quantile = None
+        self._quantile_offset = None
         self.quantile = quantile
 
         # Meta optimize parameters
@@ -85,9 +88,12 @@ class CrossEntropy(optimize.Optimizer):
 def get_quantile_offset(num_values, quantile):
     return int((num_values-1) * (1.0-quantile))
 
-def random_pdfs(solution_size):
+def random_pdfs(solution_size, num_pdfs=None):
+    if num_pdfs == None:
+        num_pdfs = solution_size*4
+
     pdfs = []
-    for i in range(solution_size*2):
+    for i in range(num_pdfs):
         # Create random pdf
         pdfs.append([random.uniform(0.0, 1.0) for i in range(solution_size)])
     return pdfs
@@ -107,15 +113,16 @@ def sample(probabilities, population_size):
         population.append(solution)
     return population
 
+def prod(iterable):
+    return reduce(operator.mul, iterable, 1)
+
 def chance(solution, pdf):
     """Return the chance of obtaining a solution from a pdf.
     
-    This is the average of the chance of each bit given the probability for that bit.
+    The probability of many independant weighted "coin flips" (one for each bit)
     """
-    c = 0.0
-    for bit, p in zip(solution, pdf):
-        c += 1.0 - abs(bit - p)
-    return c / len(solution)
+    # 1.0 - abs(bit - p) gives probability of bit given p
+    return prod([1.0 - abs(bit - p) for bit, p in zip(solution, pdf)])
 
 def pdf_value(pdf, population, fitnesses, fitness_threshold):
     """Give the value of a pdf.
@@ -127,7 +134,7 @@ def pdf_value(pdf, population, fitnesses, fitness_threshold):
     value = 0.0
     for solution, fitness in zip(population, fitnesses):
         if fitness >= fitness_threshold:
-            value += math.log(chance(solution, pdf))
+            value += math.log(1.0+chance(solution, pdf)) #1.0 + chance to avoid issues with chance of 0
 
     # The official equation states that value is now divided by len(fitnesses)
     # however, this is unnecessary when we are only obtaining the best pdf,
