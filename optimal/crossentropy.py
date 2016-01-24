@@ -44,7 +44,7 @@ class CrossEntropy(optimize.StandardOptimizer):
             self.pdfs = pdfs
         else:
             # Create a default set of pdfs
-            self.pdfs = random_pdfs(solution_size)
+            self.pdfs = _random_pdfs(solution_size)
         self.pdf = None # Values initialize in initialize function
 
         # Quantile is easier to use as an index offset (from max)
@@ -63,14 +63,14 @@ class CrossEntropy(optimize.StandardOptimizer):
 
     def create_initial_population(self):
         # Initial population is a uniform random sample
-        return sample(self.pdf, self._population_size)
+        return _sample(self.pdf, self._population_size)
 
     def new_population(self, population, fitnesses):
         # Update pdf, then sample new population
-        self.pdf = update_pdf(population, fitnesses, self.pdfs, self.__quantile_offset)
+        self.pdf = _update_pdf(population, fitnesses, self.pdfs, self.__quantile_offset)
 
         # New population is randomly sampled, independent of old population
-        return sample(self.pdf, self._population_size)
+        return _sample(self.pdf, self._population_size)
 
     # Setters and getters for quantile, so quantile_offset is automatically set
     @property
@@ -80,12 +80,12 @@ class CrossEntropy(optimize.StandardOptimizer):
     @_quantile.setter
     def _quantile(self, value):
         self.__quantile = value
-        self.__quantile_offset = get_quantile_offset(self._population_size, value)
+        self.__quantile_offset = _get_quantile_offset(self._population_size, value)
 
-def get_quantile_offset(num_values, quantile):
+def _get_quantile_offset(num_values, quantile):
     return int((num_values-1) * (1.0-quantile))
 
-def random_pdfs(solution_size, num_pdfs=None):
+def _random_pdfs(solution_size, num_pdfs=None):
     if num_pdfs == None:
         num_pdfs = solution_size*4
 
@@ -95,7 +95,7 @@ def random_pdfs(solution_size, num_pdfs=None):
         pdfs.append([random.uniform(0.0, 1.0) for i in range(solution_size)])
     return pdfs
 
-def sample(probabilities, population_size):
+def _sample(probabilities, population_size):
     """Return a random population, drawn with regard to a set of probabilities"""
     population = []
     for i in range(population_size):
@@ -110,18 +110,18 @@ def sample(probabilities, population_size):
         population.append(solution)
     return population
 
-def prod(iterable):
+def _prod(iterable):
     return reduce(operator.mul, iterable, 1)
 
-def chance(solution, pdf):
+def _chance(solution, pdf):
     """Return the chance of obtaining a solution from a pdf.
     
     The probability of many independant weighted "coin flips" (one for each bit)
     """
     # 1.0 - abs(bit - p) gives probability of bit given p
-    return prod([1.0 - abs(bit - p) for bit, p in zip(solution, pdf)])
+    return _prod([1.0 - abs(bit - p) for bit, p in zip(solution, pdf)])
 
-def pdf_value(pdf, population, fitnesses, fitness_threshold):
+def _pdf_value(pdf, population, fitnesses, fitness_threshold):
     """Give the value of a pdf.
 
     This represents the likelihood of a pdf generating solutions 
@@ -131,26 +131,26 @@ def pdf_value(pdf, population, fitnesses, fitness_threshold):
     value = 0.0
     for solution, fitness in zip(population, fitnesses):
         if fitness >= fitness_threshold:
-            value += math.log(1.0+chance(solution, pdf)) #1.0 + chance to avoid issues with chance of 0
+            value += math.log(1.0+_chance(solution, pdf)) #1.0 + chance to avoid issues with chance of 0
 
     # The official equation states that value is now divided by len(fitnesses)
     # however, this is unnecessary when we are only obtaining the best pdf,
     # because every solution is of the same size
     return value
 
-def best_pdf(pdfs, population, fitnesses, fitness_threshold):
+def _best_pdf(pdfs, population, fitnesses, fitness_threshold):
     # We can use the built in max function
     # we just need to provide a key that provides the value of the 
     # stochastic program defined for cross entropy
-    return max(pdfs, key=lambda pdf: pdf_value(pdf, population, fitnesses, fitness_threshold))
+    return max(pdfs, key=lambda pdf: _pdf_value(pdf, population, fitnesses, fitness_threshold))
 
-def get_quantile_cutoff(values, quantile_offset):
+def _get_quantile_cutoff(values, quantile_offset):
     return sorted(values)[-(quantile_offset+1)]
 
-def update_pdf(population, fitnesses, pdfs, quantile):
+def _update_pdf(population, fitnesses, pdfs, quantile):
     """Find a better pdf, based on fitnesses."""
     # First we determine a fitness threshold based on a quantile of fitnesses
-    fitness_threshold = get_quantile_cutoff(fitnesses, quantile)
+    fitness_threshold = _get_quantile_cutoff(fitnesses, quantile)
 
     # Then check all of our possible pdfs with a stochastic program
-    return best_pdf(pdfs, population, fitnesses, fitness_threshold)
+    return _best_pdf(pdfs, population, fitnesses, fitness_threshold)

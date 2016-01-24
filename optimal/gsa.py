@@ -65,29 +65,29 @@ class GSA(optimize.StandardOptimizer):
 
     def initialize(self):
         # Intialize GSA variables
-        self._velocities = [[0.0]*self.solution_size]*self._population_size
+        self._velocities = [[0.0]*self._solution_size]*self._population_size
 
     def create_initial_population(self):
-        return create_initial_population(self._population_size, self.solution_size,
+        return _initial_population_gsa(self._population_size, self._solution_size,
                                          self._lower_bounds, self._upper_bounds)
 
     def new_population(self, population, fitnesses):
-        new_pop, new_velocities = new_population(population, fitnesses, self._velocities,
+        new_pop, new_velocities = _new_population_gsa(population, fitnesses, self._velocities,
                                                  self._lower_bounds, self._upper_bounds,
                                                  self._G_initial, self._G_reduction_rate,
                                                  self.iteration, self._max_iterations)
         self._velocities = new_velocities
         return new_pop
 
-def create_initial_population(population_size, solution_size, 
+def _initial_population_gsa(population_size, solution_size, 
                               lower_bounds, upper_bounds):
     """Create a random initial population of floating point values.
 
     Args:
         population_size: an integer representing the number of solutions in the population.
         problem_size: the number of values in each solution.
-        lower_bounds: a list, each value is a lower bound for the corrosponding part of the solution.
-        upper_bounds: a list, each value is a upper bound for the corrosponding part of the solution.
+        lower_bounds: a list, each value is a lower bound for the corresponding part of the solution.
+        upper_bounds: a list, each value is a upper bound for the corresponding part of the solution.
 
     Returns:
         list; A list of random solutions.
@@ -95,18 +95,10 @@ def create_initial_population(population_size, solution_size,
     if len(lower_bounds) != solution_size or len(upper_bounds) != solution_size:
         raise ValueError("Lower and upper bounds much have a length equal to the problem size.")
 
-    # Create random population
-    population = []
+    return optimize.make_population(population_size, optimize.random_solution_real,
+                                    solution_size, lower_bounds, upper_bounds)
 
-    for i in range(population_size): #for every chromosome
-        solution = []
-        for j in range(solution_size): #for every bit in the chromosome
-            solution.append(random.uniform(lower_bounds[j], upper_bounds[j])) #randomly add a 0 or a 1
-        population.append(solution) #add the chromosome to the population
-
-    return population
-
-def new_population(population, fitnesses, velocities,
+def _new_population_gsa(population, fitnesses, velocities,
                    lower_bounds, upper_bounds, 
                    G_initial, G_reduction_rate, iteration, max_iterations):
     # Update the gravitational constant, and the best and worst of the population
@@ -115,8 +107,8 @@ def new_population(population, fitnesses, velocities,
     population_size = len(population)
     solution_size = len(population[0])
 
-    G = G_gsa(G_initial, G_reduction_rate, iteration, max_iterations)
-    masses = get_masses(fitnesses)
+    G = _G_gsa(G_initial, G_reduction_rate, iteration, max_iterations)
+    masses = _get_masses(fitnesses)
         
     # Create bundled solution with position and mass for the K best calculation
     # Also store index to later check if two solutions are the same
@@ -134,24 +126,24 @@ def new_population(population, fitnesses, velocities,
         for j in range(K):
             # If it is not the same solution
             if i != solutions[j]['index']:
-                force_vectors.append(gsa_force(G, masses[i], solutions[j]['mass'], 
+                force_vectors.append(_gsa_force(G, masses[i], solutions[j]['mass'], 
                                                 population[i], solutions[j]['pos']))
-        forces.append(gsa_total_force(force_vectors, solution_size))
+        forces.append(_gsa_total_force(force_vectors, solution_size))
 
     # Get the accelearation of each solution
     accelerations = []
     for i in range(population_size):
-        accelerations.append(gsa_acceleration(forces[i], masses[i]))
+        accelerations.append(_gsa_acceleration(forces[i], masses[i]))
 
     # Update the velocity of each solution
     new_velocities = []
     for i in range(population_size):
-        new_velocities.append(gsa_update_velocity(velocities[i], accelerations[i]))
+        new_velocities.append(_gsa_update_velocity(velocities[i], accelerations[i]))
 
     # Create the new population
     new_population = []
     for i in range(population_size):
-        new_position = gsa_update_position(population[i], new_velocities[i])
+        new_position = _gsa_update_position(population[i], new_velocities[i])
         # Constrain to bounds
         new_position = list(numpy.clip(new_position, lower_bounds, upper_bounds))
         #for j in range(solution_size):
@@ -164,13 +156,13 @@ def new_population(population, fitnesses, velocities,
 
     return new_population, new_velocities
 
-def G_physics(G_initial, t, G_reduction_rate):
+def _G_physics(G_initial, t, G_reduction_rate):
     return G_initial*(1.0/t)**G_reduction_rate
 
-def G_gsa(G_initial, G_reduction_rate, iteration, max_iterations):
+def _G_gsa(G_initial, G_reduction_rate, iteration, max_iterations):
     return G_initial*math.exp(-G_reduction_rate*iteration/float(max_iterations))
 
-def get_masses(fitnesses):
+def _get_masses(fitnesses):
     # Obtain constants
     best_fitness = max(fitnesses)
     worst_fitness = min(fitnesses)
@@ -190,7 +182,7 @@ def get_masses(fitnesses):
 
     return M_vec
 
-def gsa_force(G, M_i, M_j, x_i, x_j):
+def _gsa_force(G, M_i, M_j, x_i, x_j):
     """Gives the force of solution j on solution i.
     
     args:
@@ -212,7 +204,7 @@ def gsa_force(G, M_i, M_j, x_i, x_j):
     # Epsilon prevents divide by zero errors
     return G*(M_i*M_j)/(distance+epsilon)*position_diff
 
-def gsa_total_force(force_vectors, vector_length):
+def _gsa_total_force(force_vectors, vector_length):
     """Return a randomly weighted sum of the force vectors.
     
     args:
@@ -232,10 +224,10 @@ def gsa_total_force(force_vectors, vector_length):
             total_force[d] += random.uniform(0.0, 1.0)*force_vec[d]
     return total_force
 
-def gsa_acceleration(total_force, M_i):
+def _gsa_acceleration(total_force, M_i):
     return numpy.divide(total_force, M_i)
 
-def gsa_update_velocity(v_i, a_i):
+def _gsa_update_velocity(v_i, a_i):
     """Stochastically update the velocity of solution i."""
 
     # The GSA algorithm specifies that the new velocity for each dimension
@@ -247,5 +239,5 @@ def gsa_update_velocity(v_i, a_i):
         v.append(random.uniform(0.0, 1.0)*v_i[d]+a_i[d])
     return v
 
-def gsa_update_position(x_i, v_i):
+def _gsa_update_position(x_i, v_i):
     return numpy.add(x_i, v_i)

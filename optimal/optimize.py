@@ -24,8 +24,21 @@
 """General optimizer code for any specific algorithm."""
 
 import copy
+import random
 
 from optimal import helpers
+
+def random_solution_binary(solution_size):
+    """Make a list of random 0s and 1s."""
+    return [random.randint(0, 1) for i in range(solution_size)]
+
+def random_solution_real(solution_size, lower_bounds, upper_bounds):
+    """Make a list of random real numbers between lower and upper bounds."""
+    return [random.uniform(lower_bounds[i], upper_bounds[i]) for i in range(solution_size)]
+
+def make_population(population_size, solution_generator, *args, **kwargs):
+    """Make a population with the supplied generator."""
+    return [solution_generator(*args, **kwargs) for i in range(population_size)]
 
 def _print_fitnesses(iteration, fitnesses, best_solution, frequency=1):
     if iteration == 1 or iteration % frequency == 0:
@@ -260,7 +273,7 @@ class Optimizer(object):
         else:
             # Adjust supplied metaheuristic for this problem
             _meta_optimizer._fitness_function = _meta_fitness
-            _meta_optimizer.solution_size = solution_size
+            _meta_optimizer._solution_size = solution_size
             _meta_optimizer._additional_parameters = additional_parameters
 
         # Determine the best hyperparameters with a metaheuristic
@@ -288,7 +301,7 @@ class StandardOptimizer(Optimizer):
         super(StandardOptimizer, self).__init__(fitness_function, max_iterations, **kwargs)
 
         # Set general algorithm paramaters
-        self.solution_size = solution_size
+        self._solution_size = solution_size
         self._population_size = population_size
 
         # Parameters for metaheuristic optimization

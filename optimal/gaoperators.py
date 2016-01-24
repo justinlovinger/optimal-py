@@ -105,13 +105,13 @@ def uniform_crossover(parents):
 
     return children
 
-def mutate(population, mutation_chance):
+def random_flip_mutate(population, mutation_chance):
     """Mutate every chromosome in a population, list is modified in place.
     
-    Muation occurs by randomly flipping bits (genes).
+    Mutation occurs by randomly flipping bits (genes).
     """
     for i in range(len(population)): #for every chromosome in the population
         for j in range(len(population[i])): #for every bit in the chomosome
-            mutation = random.uniform(0.0, 1.0)
-            if mutation <= mutation_chance: #if mutation takes place
+            mutate = random.uniform(0.0, 1.0)
+            if mutate <= mutation_chance: #if mutation takes place
                 population[i][j] = 1-population[i][j] #flip the bit

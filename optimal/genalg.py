@@ -69,34 +69,15 @@ class GenAlg(optimize.StandardOptimizer):
                                                                    gaoperators.uniform_crossover]}
 
     def create_initial_population(self):
-        return create_initial_population(self._population_size, self.solution_size)
+        return optimize.make_population(self._population_size, optimize.random_solution_binary,
+                                        self._solution_size)
 
     def new_population(self, population, fitnesses):
-        return new_population(population, fitnesses, 
+        return _new_population_genalg(population, fitnesses, 
                               self._mutation_chance, self._crossover_chance, 
                               self._selection_function, self._crossover_function)
 
-def create_initial_population(population_size, chromosome_length):
-    """Create a random initial population of chromosomes.
-
-    Args:
-        chromosome_length: an integer representing the length of each chromosome.
-        population_size: an integer representing the number of chromosomes in the population.
-
-    Returns:
-        list; A list of random chromosomes.
-    """
-    population = []
-
-    for i in range(population_size): #for every chromosome
-        chromosome = []
-        for j in range(chromosome_length): #for every bit in the chromosome
-            chromosome.append(random.randint(0, 1)) #randomly add a 0 or a 1
-        population.append(chromosome) #add the chromosome to the population
-
-    return population
-
-def new_population(population, fitnesses, mutation_chance=0.02, crossover_chance=0.7, 
+def _new_population_genalg(population, fitnesses, mutation_chance=0.02, crossover_chance=0.7, 
                    selection_function='roulette', crossover_function='one_point'):
     """Perform all genetic algorithm operations on a population, and return a new population.
 
@@ -104,7 +85,7 @@ def new_population(population, fitnesses, mutation_chance=0.02, crossover_chance
 
     Args:
         population: A list of binary lists, ex. [[0,1,1,0], [1,0,1,0]]
-        fitness: A list of fitnesses that corrospond with chromosomes in the population, ex. [1.2, 10.8]
+        fitness: A list of fitnesses that correspond with chromosomes in the population, ex. [1.2, 10.8]
         mutation_chance: the chance that a bit will be flipped during mutation
         crossover_chance: the chance that two parents will be crossed during crossover
         selection_function: A function that will select parents for crossover and mutation
@@ -133,15 +114,15 @@ def new_population(population, fitnesses, mutation_chance=0.02, crossover_chance
     intermediate_population = selection_function(population, probabilities)
 
     #crossover
-    new_population = crossover(intermediate_population, crossover_chance, crossover_function) #returns new population
+    new_population = _crossover(intermediate_population, crossover_chance, crossover_function) #returns new population
 
     #mutation
-    gaoperators.mutate(new_population, mutation_chance) #mutates list in place
+    gaoperators.random_flip_mutate(new_population, mutation_chance) #mutates list in place
 
     #return new population
     return new_population
 
-def crossover(population, crossover_chance, crossover_operator):
+def _crossover(population, crossover_chance, crossover_operator):
     """Perform crossover on a population, return the new crossedover population."""
 
     #population = copy.deepcopy(old_population)
