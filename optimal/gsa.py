@@ -67,11 +67,11 @@ class GSA(optimize.StandardOptimizer):
         # Intialize GSA variables
         self._velocities = [[0.0]*self._solution_size]*self._population_size
 
-    def create_initial_population(self):
+    def initial_population(self):
         return _initial_population_gsa(self._population_size, self._solution_size,
                                          self._lower_bounds, self._upper_bounds)
 
-    def new_population(self, population, fitnesses):
+    def next_population(self, population, fitnesses):
         new_pop, new_velocities = _new_population_gsa(population, fitnesses, self._velocities,
                                                  self._lower_bounds, self._upper_bounds,
                                                  self._G_initial, self._G_reduction_rate,

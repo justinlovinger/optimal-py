@@ -68,11 +68,11 @@ class GenAlg(optimize.StandardOptimizer):
                                                         'values': [gaoperators.one_point_crossover,
                                                                    gaoperators.uniform_crossover]}
 
-    def create_initial_population(self):
+    def initial_population(self):
         return optimize.make_population(self._population_size, optimize.random_solution_binary,
                                         self._solution_size)
 
-    def new_population(self, population, fitnesses):
+    def next_population(self, population, fitnesses):
         return _new_population_genalg(population, fitnesses, 
                               self._mutation_chance, self._crossover_chance, 
                               self._selection_function, self._crossover_function)

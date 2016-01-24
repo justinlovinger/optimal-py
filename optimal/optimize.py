@@ -100,16 +100,16 @@ class Optimizer(object):
         """
         pass
 
-    def create_initial_population(self):
-        """Create the initial population before each optimization run.
+    def initial_population(self):
+        """Make the initial population before each optimization run.
         
         Returns:
             list; a list of solutions.
         """
-        raise NotImplementedError("create_initial_population is not implemented.")
+        raise NotImplementedError("initial_population is not implemented.")
 
-    def new_population(self, population, fitnesses):
-        """Create a new population after each optimization iteration.
+    def next_population(self, population, fitnesses):
+        """Make a new population after each optimization iteration.
 
         Args:
             population: The population current population of solutions.
@@ -130,7 +130,7 @@ class Optimizer(object):
         # Initialize algorithm
         best_solution = {'solution': [], 'fitness': 0.0}
         self.initialize()
-        population = self.create_initial_population()
+        population = self.initial_population()
 
         try:
             # Begin optimization loop
@@ -153,7 +153,7 @@ class Optimizer(object):
                     break
 
                 # Continue optimizing
-                population = self.new_population(population, fitnesses)
+                population = self.next_population(population, fitnesses)
 
             # Store best internally, before returning
             self.best_solution = best_solution['solution']

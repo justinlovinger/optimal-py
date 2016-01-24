@@ -61,11 +61,11 @@ class CrossEntropy(optimize.StandardOptimizer):
         # Start with a random pdf
         self.pdf = random.choice(self.pdfs)
 
-    def create_initial_population(self):
+    def initial_population(self):
         # Initial population is a uniform random sample
         return _sample(self.pdf, self._population_size)
 
-    def new_population(self, population, fitnesses):
+    def next_population(self, population, fitnesses):
         # Update pdf, then sample new population
         self.pdf = _update_pdf(population, fitnesses, self.pdfs, self.__quantile_offset)
 
