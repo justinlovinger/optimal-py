@@ -377,12 +377,12 @@ def _make_hyperparameter_decode_func(locked_values, meta_parameters):
 
             # Decode binary
             if parameters['type'] == 'discrete':
-                i = helpers.binary_to_int(binary, max=len(parameters['values'])-1)
+                i = helpers.binary_to_int(binary, upper_bound=len(parameters['values'])-1)
                 value = parameters['values'][i]
             elif parameters['type'] == 'int':
                 value = helpers.binary_to_int(binary,
                                               offset=parameters['min'],
-                                              max=parameters['max'])
+                                              upper_bound=parameters['max'])
             elif parameters['type'] == 'float':
                 value = helpers.binary_to_float(binary,
                                                 minimum=parameters['min'],
