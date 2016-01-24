@@ -55,7 +55,7 @@ def roulette_selection(population, probabilities):
     pop_size = len(population)
 
     intermediate_population = []
-    for j in range(pop_size):
+    for _ in range(pop_size):
         selection = random.uniform(0.0, 1.0) #choose a random selection
         for (i, probability) in enumerate(probabilities): #iterate over probabilities list
             if probability >= selection: #first probability that is greater
@@ -68,12 +68,14 @@ def roulette_selection(population, probabilities):
 def one_point_crossover(parents):
     """Perform one point crossover on two parent chromosomes.
 
-    Select a random position in the chromosome. Take genes to the left from one parent and the rest from the other parent.
+    Select a random position in the chromosome.
+    Take genes to the left from one parent and the rest from the other parent.
     Ex. p1 = xxxxx, p2 = yyyyy, position = 2 (starting at 0), child = xxyyy
     """
 
     chromosome_length = len(parents[0])
-    crossover_point = random.randint(1, chromosome_length-1) #the point that the chomosomes will be crossed at
+    # The point that the chromosomes will be crossed at (see Ex. above)
+    crossover_point = random.randint(1, chromosome_length-1)
 
     children = [[], []] #the two children that will be created
 
@@ -89,7 +91,7 @@ def one_point_crossover(parents):
 
 def uniform_crossover(parents):
     """Perform uniform crossover on two parent chromosomes.
-    
+
     Randomly take genes from one parent or the other.
     Ex. p1 = xxxxx, p2 = yyyyy, child = xyxxy
     """
@@ -97,17 +99,19 @@ def uniform_crossover(parents):
 
     children = [[], []]
 
-    for i in range(chromosome_length): #for every bit in the chromosome
+    for i in range(chromosome_length):
         selected_parent = random.randint(0, 1)
 
-        children[0].append(parents[selected_parent][i]) #take from the selected parent, and add it to child 1
-        children[1].append(parents[1-selected_parent][i]) #take from the other parent, and add it to child 2
+        # Take from the selected parent, and add it to child 1
+        # Take from the other parent, and add it to child 2
+        children[0].append(parents[selected_parent][i])
+        children[1].append(parents[1-selected_parent][i])
 
     return children
 
 def random_flip_mutate(population, mutation_chance):
     """Mutate every chromosome in a population, list is modified in place.
-    
+
     Mutation occurs by randomly flipping bits (genes).
     """
     for i in range(len(population)): #for every chromosome in the population
