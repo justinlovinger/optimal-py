@@ -21,26 +21,31 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 ###############################################################################
+"""Genetic algorithm metaheuristic.
+
+Contains base implementation of genetic algorithms.
+Specific crossover, selection, etc. functions are implemented in gaoperators.py
+"""
 
 import random
-import copy
 
 from optimal import gaoperators, optimize
 
 class GenAlg(optimize.StandardOptimizer):
     """Canonical Genetic Algorithm
-    
+
     Perform genetic algorithm optimization with a given fitness function."""
 
-    def __init__(self, fitness_function, chromosome_size, population_size=20, 
-                 max_iterations=100, mutation_chance=0.02, crossover_chance=0.7, 
-                 selection_function=gaoperators.roulette_selection, 
+    def __init__(self, fitness_function, chromosome_size, population_size=20,
+                 max_iterations=100, mutation_chance=0.02, crossover_chance=0.7,
+                 selection_function=gaoperators.roulette_selection,
                  crossover_function=gaoperators.one_point_crossover,
                  **kwargs):
         """Create an object that optimizes a given fitness function with GenAlg.
 
         Args:
-            fitness_function: A function representing the problem to solve, must return a fitness value.
+            fitness_function: A function representing the problem to solve,
+                              must return a fitness value.
             chromosome_size: The number of genes (bits) in every chromosome.
             population_size: The number of chromosomes in every generation
             max_iterations: The number of iterations to optimize before stopping
@@ -51,7 +56,7 @@ class GenAlg(optimize.StandardOptimizer):
         """
         super(GenAlg, self).__init__(fitness_function, chromosome_size, population_size,
                                      max_iterations, **kwargs)
-        
+
         #set genetic algorithm paramaters
         self._mutation_chance = mutation_chance
         self._crossover_chance = crossover_chance
@@ -61,10 +66,10 @@ class GenAlg(optimize.StandardOptimizer):
         # Meta optimize parameters
         self._meta_parameters['_mutation_chance'] = {'type': 'float', 'min': 0.0, 'max': 1.0}
         self._meta_parameters['_crossover_chance'] = {'type': 'float', 'min': 0.0, 'max': 1.0}
-        self._meta_parameters['_selection_function'] = {'type': 'discrete', 
+        self._meta_parameters['_selection_function'] = {'type': 'discrete',
                                                         'values': [gaoperators.roulette_selection,
                                                                    gaoperators.stochastic_selection]}
-        self._meta_parameters['_crossover_function'] = {'type': 'discrete', 
+        self._meta_parameters['_crossover_function'] = {'type': 'discrete',
                                                         'values': [gaoperators.one_point_crossover,
                                                                    gaoperators.uniform_crossover]}
 
@@ -73,19 +78,20 @@ class GenAlg(optimize.StandardOptimizer):
                                         self._solution_size)
 
     def next_population(self, population, fitnesses):
-        return _new_population_genalg(population, fitnesses, 
-                              self._mutation_chance, self._crossover_chance, 
-                              self._selection_function, self._crossover_function)
+        return _new_population_genalg(population, fitnesses,
+                                      self._mutation_chance, self._crossover_chance,
+                                      self._selection_function, self._crossover_function)
 
-def _new_population_genalg(population, fitnesses, mutation_chance=0.02, crossover_chance=0.7, 
-                   selection_function='roulette', crossover_function='one_point'):
+def _new_population_genalg(population, fitnesses, mutation_chance=0.02, crossover_chance=0.7,
+                           selection_function='roulette', crossover_function='one_point'):
     """Perform all genetic algorithm operations on a population, and return a new population.
 
     population must have an even number of chromosomes.
 
     Args:
         population: A list of binary lists, ex. [[0,1,1,0], [1,0,1,0]]
-        fitness: A list of fitnesses that correspond with chromosomes in the population, ex. [1.2, 10.8]
+        fitness: A list of fitnesses that correspond with chromosomes in the population,
+                 ex. [1.2, 10.8]
         mutation_chance: the chance that a bit will be flipped during mutation
         crossover_chance: the chance that two parents will be crossed during crossover
         selection_function: A function that will select parents for crossover and mutation
@@ -94,12 +100,13 @@ def _new_population_genalg(population, fitnesses, mutation_chance=0.02, crossove
     Returns:
         list; A new population of chromosomes, that should be more fit.
     """
-    #selection
+    # Selection
     fitness_sum = sum(fitnesses)
 
-    #generate probabilities
-    #creates a list of increasing values. 
-    #The greater the gap between two values, the greater the probability. Ex. [0.1, 0.23, 0.56, 1.0]
+    # Generate probabilities
+    # Creates a list of increasing values.
+    # The greater the gap between two values, the greater the probability.
+    # Ex. [0.1, 0.23, 0.56, 1.0]
     prob_sum = 0.0
     probabilities = []
     for fitness in fitnesses:
@@ -109,26 +116,22 @@ def _new_population_genalg(population, fitnesses, mutation_chance=0.02, crossove
         probabilities.append(prob_sum)
     probabilities[-1] += 0.0001 #to compensate for rounding errors
 
-    #create the population of parents that will be crossed and mutated
-    #this population can contain duplicates of chromosomes
+    # Create the population of parents that will be crossed and mutated.
     intermediate_population = selection_function(population, probabilities)
 
-    #crossover
-    new_population = _crossover(intermediate_population, crossover_chance, crossover_function) #returns new population
+    # Crossover
+    new_population = _crossover(intermediate_population, crossover_chance, crossover_function)
 
-    #mutation
-    gaoperators.random_flip_mutate(new_population, mutation_chance) #mutates list in place
+    # Mutation
+    gaoperators.random_flip_mutate(new_population, mutation_chance) # mutates list in place
 
-    #return new population
+    # Return new population
     return new_population
 
 def _crossover(population, crossover_chance, crossover_operator):
-    """Perform crossover on a population, return the new crossedover population."""
-
-    #population = copy.deepcopy(old_population)
-
+    """Perform crossover on a population, return the new crossed-over population."""
     new_population = []
-    for i in range(0, len(population), 2): #for every other index
+    for i in range(0, len(population), 2): # for every other index
         # Take parents from every set of 2 in the population
         # Wrap index if out of range
         try:
@@ -138,8 +141,9 @@ def _crossover(population, crossover_chance, crossover_operator):
 
         crossover = random.uniform(0.0, 1.0)
 
-        if crossover <= crossover_chance: #if crossover takes place
-            new_population.extend(crossover_operator(parents)) #add the children to the new population
+        if crossover <= crossover_chance: # if crossover takes place
+            # Add children to the new population
+            new_population.extend(crossover_operator(parents))
         else:
             new_population.append(parents[0][:])
             new_population.append(parents[1][:])
