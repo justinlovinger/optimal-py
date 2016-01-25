@@ -22,4 +22,4 @@
 #SOFTWARE.
 ###############################################################################
 
-__all__ = ["helpers", "genalg", "gsa"]
+__all__ = ['helpers', 'genalg', 'gsa', 'crossentropy', 'benchmark']
