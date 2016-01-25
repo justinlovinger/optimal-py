@@ -77,7 +77,7 @@ class Optimizer(object):
 
         # Bookkeeping
         self.iteration = 0
-        self.evaluation_runs = 0
+        self.fitness_runs = 0
         self.best_solution = None
         self.best_fitness = None
         self.solution_found = False
@@ -88,7 +88,7 @@ class Optimizer(object):
         Call before beginning optimization.
         """
         self.iteration = 0
-        self.evaluation_runs = 0
+        self.fitness_runs = 0
         self.best_solution = None
         self.best_fitness = None
         self.solution_found = False
@@ -185,7 +185,7 @@ class Optimizer(object):
                     finished = fitness[1]
                     fitness = fitness[0]
                 self.__fitness_dict[str_solution] = fitness
-                self.evaluation_runs += 1 #keep track of how many times fitness is evaluated
+                self.fitness_runs += 1 #keep track of how many times fitness is evaluated
 
             fitnesses.append(fitness)
             if finished:
@@ -432,7 +432,7 @@ def _meta_fitness(solution, _decode_func, _optimizer, _problems,
 
             # Get performance for problem
             optimizer.optimize()
-            all_evaluation_runs.append(optimizer.evaluation_runs)
+            all_evaluation_runs.append(optimizer.fitness_runs)
             if optimizer.solution_found:
                 solutions_found.append(1.0)
             else:
