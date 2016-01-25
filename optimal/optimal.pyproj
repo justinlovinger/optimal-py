@@ -27,13 +27,35 @@
     <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="benchmark.py" />
+    <Compile Include="conftest.py" />
+    <Compile Include="crossentropy.py" />
     <Compile Include="examplefunctions.py" />
+    <Compile Include="examples\benchmark_gaoperators.py" />
     <Compile Include="helpers.py" />
     <Compile Include="genalg.py" />
     <Compile Include="gaoperators.py" />
     <Compile Include="gsa.py" />
     <Compile Include="optimize.py" />
+    <Compile Include="tests\testall.py" />
+    <Compile Include="tests\testallslow.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="tests\test_crossentropy.py" />
+    <Compile Include="tests\test_genalg.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="tests\test_gsa.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="tests\test_optimize.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="__init__.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="examples\" />
+    <Folder Include="tests\" />
   </ItemGroup>
   <Import Project="$(PtvsTargetsFile)" Condition="Exists($(PtvsTargetsFile))" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" Condition="!Exists($(PtvsTargetsFile))" />
