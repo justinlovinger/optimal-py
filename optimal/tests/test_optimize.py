@@ -29,9 +29,11 @@ import pytest
 from optimal import optimize
 from optimal.genalg import GenAlg
 
+
 def simple_function(binary):
     finished = binary[0] and binary[1]
     return float(binary[0])+float(binary[1])+0.001, finished
+
 
 def test_get_hyperparameters():
     optimizer = optimize.StandardOptimizer(simple_function, 2)
@@ -40,11 +42,13 @@ def test_get_hyperparameters():
     assert hyperparameters != None
     assert hyperparameters['_population_size']
 
+
 def test_set_hyperparameters_wrong_parameter():
     optimizer = optimize.StandardOptimizer(simple_function, 2)
 
     with pytest.raises(ValueError):
         optimizer._set_hyperparameters({'test': None})
+
 
 def test_meta_optimize_parameter_locks():
     # Run meta optimize with locks

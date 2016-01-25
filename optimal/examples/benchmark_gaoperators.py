@@ -40,6 +40,7 @@ import gaoperators
 import examplefunctions
 import benchmark
 
+
 functions = [
     {'func': examplefunctions.levis_function, 'decode': examplefunctions.levi_binary},
     {'func': examplefunctions.eggholder_function, 'decode': examplefunctions.egg_binary},
@@ -47,6 +48,7 @@ functions = [
     {'func': examplefunctions.shaffer_function, 'decode': examplefunctions.shaffer_binary},
     {'func': examplefunctions.cross_function, 'decode': examplefunctions.cross_binary},
     ]
+
 
 def benchmark_multi(optimizer):
     """Benchmark an optimizer configuration on multiple functions."""
@@ -66,6 +68,7 @@ def benchmark_multi(optimizer):
     all_stats = benchmark.compare(optimizers, 100)
     return benchmark.aggregate(all_stats)
     
+
 # Create the genetic algorithm configurations to compare
 # In reality, we would also want to optimize other hyperparameters
 ga_onepoint = genalg.GenAlg(None, 32, 

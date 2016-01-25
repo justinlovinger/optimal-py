@@ -25,12 +25,14 @@ import pytest
 
 from optimal import genalg, examplefunctions, optimize
 
+
 def test_genalg_sphere():
     optimizer = genalg.GenAlg(examplefunctions.sphere, 32, 
                               decode_func=examplefunctions.ackley_binary)
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
     optimizer.optimize()
     assert optimizer.solution_found
+
 
 @pytest.mark.slowtest()
 def test_genalg_problems():
@@ -43,6 +45,7 @@ def test_genalg_problems():
     assert optimizer.solution_found
 
     # TODO: test other functions
+
 
 @pytest.mark.slowtest()
 def test_metaoptimize_genalg():

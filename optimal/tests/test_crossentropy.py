@@ -26,6 +26,7 @@ import pytest
 
 from optimal import crossentropy, examplefunctions, optimize, genalg
 
+
 @pytest.mark.parametrize('solution,pdf,expected', [
         ([1, 1, 1], [1.0, 1.0, 1.0], 1.0),
         ([1, 1, 1], [0.0, 0.0, 0.0], 0.0),
@@ -36,6 +37,7 @@ from optimal import crossentropy, examplefunctions, optimize, genalg
 def test_chance(solution, pdf, expected):
     assert crossentropy._chance(solution, pdf) == expected
 
+
 @pytest.mark.parametrize('values,q,expected', [
         ([0.0, 0.5, 1.0], 1, 0.5),
         ([0.0, 0.5, 1.0], 0, 1.0),
@@ -45,6 +47,7 @@ def test_chance(solution, pdf, expected):
 def test_quantile_cutoff(values, q, expected):
     assert crossentropy._get_quantile_cutoff(values, q) == expected
 
+
 @pytest.mark.parametrize('num_values,q,expected', [
         (10, 1.0, 0),
         (10, 0.0, 9),
@@ -52,6 +55,7 @@ def test_quantile_cutoff(values, q, expected):
         ])
 def test_get_quantile_offset(num_values, q, expected):
     assert crossentropy._get_quantile_offset(num_values, q) == expected
+
 
 def test_chance():
     solution = [1, 1]
@@ -67,6 +71,7 @@ def test_chance():
     solution = [1, 1]
     pdf = [1.0, 1.0]
     assert crossentropy._chance(solution, pdf) == 1.0
+
 
 def test_best_pdf():
     solutions = [[1, 1], [0, 1], [0, 0]]
@@ -89,6 +94,7 @@ def test_crossentropy_sphere():
     optimizer.optimize()
     assert optimizer.solution_found
 
+
 @pytest.mark.slowtest()
 def test_crossentropy_problems():
     # Attempt to solve various problems
@@ -102,6 +108,7 @@ def test_crossentropy_problems():
     assert optimizer.solution_found
 
     # TODO: test other functions
+
 
 @pytest.mark.slowtest()
 def test_metaoptimize_crossentropy():

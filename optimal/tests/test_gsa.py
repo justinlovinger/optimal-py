@@ -26,12 +26,14 @@ import pytest
 
 from optimal import gsa, examplefunctions, optimize, genalg
 
+
 def test_gsa_sphere():
     optimizer = gsa.GSA(examplefunctions.sphere, 2, [-5.0]*2, [5.0]*2, max_iterations=1000,
                         decode_func=examplefunctions.decode_real)
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
     optimizer.optimize()
     assert optimizer.solution_found
+
 
 @pytest.mark.slowtest()
 def test_gsa_problems():
@@ -44,6 +46,7 @@ def test_gsa_problems():
     assert optimizer.solution_found
 
     # TODO: test other functions
+
 
 @pytest.mark.slowtest()
 def test_metaoptimize_gsa():
