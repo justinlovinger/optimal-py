@@ -72,7 +72,7 @@ class Optimizer(object):
         self._max_iterations = max_iterations
 
         # Parameters for metaheuristic optimization
-        self._meta_parameters = {}
+        self._hyperparameters = {}
 
         # Enable logging by default
         self.logging = True
@@ -216,7 +216,7 @@ class Optimizer(object):
     def _get_hyperparameters(self):
         """Get internal optimization parameters."""
         hyperparameters = {}
-        for key in self._meta_parameters:
+        for key in self._hyperparameters:
             hyperparameters[key] = getattr(self, key)
         return hyperparameters
 
@@ -237,7 +237,7 @@ class Optimizer(object):
             raise ValueError('smoothing must be > 0')
 
         # Copy to avoid permanent modification
-        meta_parameters = copy.deepcopy(self._meta_parameters)
+        meta_parameters = copy.deepcopy(self._hyperparameters)
 
         # First, handle parameter locks, since it will modify our
         # meta_parameters dict
@@ -321,7 +321,7 @@ class StandardOptimizer(Optimizer):
         self._population_size = population_size
 
         # Parameters for metaheuristic optimization
-        self._meta_parameters['_population_size'] = {
+        self._hyperparameters['_population_size'] = {
             'type': 'int', 'min': 2, 'max': 1026}
 
 

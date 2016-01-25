@@ -61,7 +61,7 @@ class CrossEntropy(optimize.StandardOptimizer):
         self._quantile = quantile
 
         # Meta optimize parameters
-        self._meta_parameters['_quantile'] = {
+        self._hyperparameters['_quantile'] = {
             'type': 'float', 'min': 0.0, 'max': 1.0}
 
     def initialize(self):

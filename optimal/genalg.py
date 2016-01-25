@@ -65,14 +65,14 @@ class GenAlg(optimize.StandardOptimizer):
         self._crossover_function = crossover_function
 
         # Meta optimize parameters
-        self._meta_parameters['_mutation_chance'] = {
+        self._hyperparameters['_mutation_chance'] = {
             'type': 'float', 'min': 0.0, 'max': 1.0}
-        self._meta_parameters['_crossover_chance'] = {
+        self._hyperparameters['_crossover_chance'] = {
             'type': 'float', 'min': 0.0, 'max': 1.0}
-        self._meta_parameters['_selection_function'] = {'type': 'discrete',
+        self._hyperparameters['_selection_function'] = {'type': 'discrete',
                                                         'values': [gaoperators.roulette_selection,
                                                                    gaoperators.stochastic_selection]}
-        self._meta_parameters['_crossover_function'] = {'type': 'discrete',
+        self._hyperparameters['_crossover_function'] = {'type': 'discrete',
                                                         'values': [gaoperators.one_point_crossover,
                                                                    gaoperators.uniform_crossover]}
 

@@ -56,6 +56,8 @@ class GSA(optimize.StandardOptimizer):
                           part of the solution.
             population_size: The number of potential solutions in every generation
             max_iterations: The number of iterations to optimize before stopping
+            grav_initial: Initial value for grav parameter (0 - 1)
+            grav_reduction_rate: Rate that grav parameter decreases over time (0 - 1)
         """
         super(GSA, self).__init__(fitness_function, solution_size, population_size,
                                   max_iterations, **kwargs)
@@ -69,6 +71,12 @@ class GSA(optimize.StandardOptimizer):
         self._grav_reduction_rate = grav_reduction_rate
         self._velocities = None
         self.initialize()
+
+        # Hyperparameter definitions
+        self._hyperparameters['_grav_initial'] = {
+            'type': 'float', 'min': 0.0, 'max': 1.0}
+        self._hyperparameters['_grav_reduction_rate'] = {
+            'type': 'float', 'min': 0.0, 'max': 1.0}
 
     def initialize(self):
         # Initialize GSA variables
