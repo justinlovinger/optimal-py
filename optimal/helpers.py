@@ -48,8 +48,9 @@ def binary_to_int(binary_list, offset=0, upper_bound=None):
     value = integer + offset
 
     # Trim if necessary
-    if upper_bound and value > upper_bound:
-        value = upper_bound
+    if (upper_bound is not None) and value > upper_bound:
+        # Bounce back. Ex. w/ upper_bound=2: [0, 1, 2, 2, 1, 0]
+        return upper_bound - ((value-offset) % (upper_bound-offset + 1))
 
     return value
 
