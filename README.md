@@ -1,5 +1,7 @@
-# Optimal
+# Optimal (beta)
 A python metaheuristic optimization library. Built for easy extension and usage.
+
+Warning: Optimal is in beta. Api may change. I will do my best to note any breaking changes in this readme, but no guarantee is given.
 
 Supported metaheuristics:
 
