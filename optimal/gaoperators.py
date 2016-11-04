@@ -144,8 +144,7 @@ def random_flip_mutate(population, mutation_chance):
 
     Mutation occurs by randomly flipping bits (genes).
     """
-    for i in range(len(population)):  # for every chromosome in the population
-        for j in range(len(population[i])):  # for every bit in the chromosome
-            mutate = random.uniform(0.0, 1.0)
-            if mutate <= mutation_chance:  # if mutation takes place
-                population[i][j] = 1 - population[i][j]  # flip the bit
+    for chromosome in population:  # for every chromosome in the population
+        for i in range(len(chromosome)):  # for every bit in the chromosome
+            if random.uniform(0.0, 1.0) <= mutation_chance:  # if mutation takes place
+                chromosome[i] = 1 - chromosome[i]  # flip the bit

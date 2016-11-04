@@ -115,8 +115,8 @@ def _new_population_genalg(population, fitnesses, mutation_chance=0.02, crossove
         intermediate_population, crossover_chance, crossover_function)
 
     # Mutation
-    gaoperators.random_flip_mutate(
-        new_population, mutation_chance)  # mutates list in place
+    # Mutates chromosomes in place
+    gaoperators.random_flip_mutate(new_population, mutation_chance)
 
     # Return new population
     return new_population
@@ -125,21 +125,19 @@ def _new_population_genalg(population, fitnesses, mutation_chance=0.02, crossove
 def _crossover(population, crossover_chance, crossover_operator):
     """Perform crossover on a population, return the new crossed-over population."""
     new_population = []
-    for i in range(0, len(population), 2):  # for every other index
+    for i in range(0, len(population), 2):  # For every other index
         # Take parents from every set of 2 in the population
         # Wrap index if out of range
         try:
-            parents = [population[i], population[i + 1]]
+            parents = (population[i], population[i + 1])
         except IndexError:
-            parents = [population[i], population[0]]
+            parents = (population[i], population[0])
 
-        crossover = random.uniform(0.0, 1.0)
-
-        if crossover <= crossover_chance:  # if crossover takes place
+        # If crossover takes place
+        if random.uniform(0.0, 1.0) <= crossover_chance:
             # Add children to the new population
             new_population.extend(crossover_operator(parents))
         else:
-            new_population.append(parents[0][:])
-            new_population.append(parents[1][:])
+            new_population.extend(parents)
 
     return new_population
