@@ -107,24 +107,15 @@ def one_point_crossover(parents):
     Take genes to the left from one parent and the rest from the other parent.
     Ex. p1 = xxxxx, p2 = yyyyy, position = 2 (starting at 0), child = xxyyy
     """
-
-    chromosome_length = len(parents[0])
     # The point that the chromosomes will be crossed at (see Ex. above)
-    crossover_point = random.randint(1, chromosome_length - 1)
+    crossover_point = random.randint(1, len(parents[0]) - 1)
 
-    children = [[], []]  # the two children that will be created
+    return (_one_parent_crossover(parents[0], parents[1], crossover_point),
+            _one_parent_crossover(parents[1], parents[0], crossover_point))
 
-    for i in range(chromosome_length):  # for every bit in the chromosome
-        if i < crossover_point:  # if the pointer is less than the crossover point
-            # Take from same parents, add to the children
-            children[0].append(parents[0][i])
-            children[1].append(parents[1][i])
-        else:
-            # Take from other parents, add to the children
-            children[1].append(parents[0][i])
-            children[0].append(parents[1][i])
 
-    return children
+def _one_parent_crossover(parent_1, parent_2, crossover_point):
+    return parent_1[:crossover_point]+parent_2[crossover_point:]
 
 
 def uniform_crossover(parents):
