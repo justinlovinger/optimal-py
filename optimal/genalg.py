@@ -39,7 +39,7 @@ class GenAlg(optimize.StandardOptimizer):
 
     def __init__(self, fitness_function, chromosome_size, population_size=20,
                  max_iterations=100, mutation_chance=0.02, crossover_chance=0.7,
-                 selection_function=gaoperators.roulette_selection,
+                 selection_function=gaoperators.tournament_selection,
                  crossover_function=gaoperators.one_point_crossover,
                  **kwargs):
         """Create an object that optimizes a given fitness function with GenAlg.
@@ -71,7 +71,8 @@ class GenAlg(optimize.StandardOptimizer):
             'type': 'float', 'min': 0.0, 'max': 1.0}
         self._hyperparameters['_selection_function'] = {'type': 'discrete',
                                                         'values': [gaoperators.roulette_selection,
-                                                                   gaoperators.stochastic_selection]}
+                                                                   gaoperators.stochastic_selection,
+                                                                   gaoperators.tournament_selection]}
         self._hyperparameters['_crossover_function'] = {'type': 'discrete',
                                                         'values': [gaoperators.one_point_crossover,
                                                                    gaoperators.uniform_crossover]}
@@ -87,7 +88,8 @@ class GenAlg(optimize.StandardOptimizer):
 
 
 def _new_population_genalg(population, fitnesses, mutation_chance=0.02, crossover_chance=0.7,
-                           selection_function='roulette', crossover_function='one_point'):
+                           selection_function=gaoperators.tournament_selection,
+                           crossover_function=gaoperators.one_point_crossover):
     """Perform all genetic algorithm operations on a population, and return a new population.
 
     population must have an even number of chromosomes.
@@ -105,24 +107,8 @@ def _new_population_genalg(population, fitnesses, mutation_chance=0.02, crossove
         list; A new population of chromosomes, that should be more fit.
     """
     # Selection
-    fitness_sum = sum(fitnesses)
-
-    # Generate probabilities
-    # Creates a list of increasing values.
-    # The greater the gap between two values, the greater the probability.
-    # Ex. [0.1, 0.23, 0.56, 1.0]
-    prob_sum = 0.0
-    probabilities = []
-    for fitness in fitnesses:
-        if fitness < 0:
-            raise ValueError(
-                "Fitness cannot be negative, fitness = {}.".format(fitness))
-        prob_sum += (fitness / fitness_sum)
-        probabilities.append(prob_sum)
-    probabilities[-1] += 0.0001  # to compensate for rounding errors
-
     # Create the population of parents that will be crossed and mutated.
-    intermediate_population = selection_function(population, probabilities)
+    intermediate_population = selection_function(population, fitnesses)
 
     # Crossover
     new_population = _crossover(

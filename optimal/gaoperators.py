@@ -27,8 +27,19 @@
 import random
 
 
-def stochastic_selection(population, probabilities):
+def tournament_selection(population, fitnesses, num_competitors=2):
+    """Create a list of parents with tournament selection."""
+    fitness_pop = zip(fitnesses, population) # Zip for easy fitness comparison
+
+    # Get num_competitors random chromosomes, then add best to result,
+    # by taking max fitness and getting chromosome from tuple.
+    # Repeat until full.
+    return [max(random.sample(fitness_pop, num_competitors))[1]
+            for _ in range(len(population))]
+
+def stochastic_selection(population, fitnesses):
     """Create a list of parents with stochastic universal sampling."""
+    probabilities = _fitnesses_to_probabilities(fitnesses)
 
     pop_size = len(population)
 
@@ -51,8 +62,9 @@ def stochastic_selection(population, probabilities):
     return intermediate_population
 
 
-def roulette_selection(population, probabilities):
+def roulette_selection(population, fitnesses):
     """Create a list of parents with roulette selection."""
+    probabilities = _fitnesses_to_probabilities(fitnesses)
 
     pop_size = len(population)
 
@@ -65,6 +77,27 @@ def roulette_selection(population, probabilities):
                 break
 
     return intermediate_population
+
+
+def _fitnesses_to_probabilities(fitnesses):
+    """Return a list of probabilites proportional to fitnesses."""
+    fitness_sum = sum(fitnesses)
+
+    # Generate probabilities
+    # Creates a list of increasing values.
+    # The greater the gap between two values, the greater the probability.
+    # Ex. [0.1, 0.23, 0.56, 1.0]
+    prob_sum = 0.0
+    probabilities = []
+    for fitness in fitnesses:
+        if fitness < 0:
+            raise ValueError(
+                "Fitness cannot be negative, fitness = {}.".format(fitness))
+        prob_sum += (fitness / fitness_sum)
+        probabilities.append(prob_sum)
+    probabilities[-1] += 0.0001  # to compensate for rounding errors
+
+    return probabilities
 
 
 def one_point_crossover(parents):
