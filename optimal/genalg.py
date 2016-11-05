@@ -29,7 +29,7 @@ Specific crossover, selection, etc. functions are implemented in gaoperators.py
 
 import random
 
-from optimal import gaoperators, optimize
+from optimal import gaoperators, optimize, common
 
 
 class GenAlg(optimize.StandardOptimizer):
@@ -78,8 +78,8 @@ class GenAlg(optimize.StandardOptimizer):
                                                                    gaoperators.uniform_crossover]}
 
     def initial_population(self):
-        return optimize.make_population(self._population_size, optimize.random_solution_binary,
-                                        self._solution_size)
+        return common.make_population(self._population_size, common.random_solution_binary,
+                                      self._solution_size)
 
     def next_population(self, population, fitnesses):
         return _new_population_genalg(population, fitnesses,

@@ -24,31 +24,9 @@
 """General optimizer code for any specific algorithm."""
 
 import copy
-import random
+import operator
 
 from optimal import helpers
-
-
-def random_solution_binary(solution_size):
-    """Make a list of random 0s and 1s."""
-    return [random.randint(0, 1) for _ in range(solution_size)]
-
-
-def random_solution_real(solution_size, lower_bounds, upper_bounds):
-    """Make a list of random real numbers between lower and upper bounds."""
-    return [random.uniform(lower_bounds[i], upper_bounds[i]) for i in range(solution_size)]
-
-
-def make_population(population_size, solution_generator, *args, **kwargs):
-    """Make a population with the supplied generator."""
-    return [solution_generator(*args, **kwargs) for _ in range(population_size)]
-
-
-def _print_fitnesses(iteration, fitnesses, best_solution, frequency=1):
-    if iteration == 1 or iteration % frequency == 0:
-        print 'Iteration: ' + str(iteration)
-        print 'Avg Fitness: ' + str(sum(fitnesses) / len(fitnesses))
-        print 'Best Fitness: ' + str(best_solution['fitness'])
 
 
 class Optimizer(object):
@@ -92,17 +70,7 @@ class Optimizer(object):
         self.best_fitness = None
         self.solution_found = False
 
-    def __reset_bookkeeping(self):
-        """Reset bookkeeping parameters to initial values.
-
-        Call before beginning optimization.
-        """
-        self.iteration = 0
-        self.fitness_runs = 0
-        self.best_solution = None
-        self.best_fitness = None
-        self.solution_found = False
-
+    
     def initialize(self):
         """Initialize algorithm parameters before each optimization run.
 
@@ -135,25 +103,25 @@ class Optimizer(object):
         Returns:
             list; The best solution, as it is encoded.
         """
-        self.__reset_bookkeeping()
+        self._reset_bookkeeping()
 
         # Initialize algorithm
-        best_solution = {'solution': [], 'fitness': 0.0}
+        best_solution = {'solution': None, 'fitness': None}
         self.initialize()
         population = self.initial_population()
 
         try:
             # Begin optimization loop
             for self.iteration in range(1, self._max_iterations + 1):
-                fitnesses, solutions, finished = self.__get_fitnesses(population)
+                fitnesses, solutions, finished = self._get_fitnesses(population)
 
                 # If the best fitness from this iteration is better than
                 # the global best
-                if max(fitnesses) > best_solution['fitness']:
+                best_index, best_fitness = max(enumerate(fitnesses), key=operator.itemgetter(1))
+                if best_fitness > best_solution['fitness']:
                     # Store the new best solution
-                    best_solution['fitness'] = max(fitnesses)
-                    best_index = fitnesses.index(best_solution['fitness'])
-                    best_solution['solution'] = solutions[best_index][:]
+                    best_solution['fitness'] = best_fitness
+                    best_solution['solution'] = solutions[best_index]
 
                 if self.logging and self._logging_func:
                     self._logging_func(
@@ -177,11 +145,24 @@ class Optimizer(object):
 
         return self.best_solution
 
-    def __get_fitnesses(self, population):
+    def _reset_bookkeeping(self):
+        """Reset bookkeeping parameters to initial values.
+
+        Call before beginning optimization.
+        """
+        self.iteration = 0
+        self.fitness_runs = 0
+        self.best_solution = None
+        self.best_fitness = None
+        self.solution_found = False
+
+    def _get_fitnesses(self, population):
         """Get the fitness for every solution in a population."""
         fitnesses = []
         solutions = []
         finished = False
+
+        # Get fitness for each potential soluion in population
         for encoded_solution in population:
             fitness_key = tuple(encoded_solution)
             try:
@@ -198,14 +179,15 @@ class Optimizer(object):
 
                 # Get fitness from user defined fitness function,
                 # with any argument they provide for it
-                fitness = self._fitness_function(
+                fitness_finished = self._fitness_function(
                     solution, **self._additional_parameters)
 
                 # If the user supplied fitness function includes the "finished" flag,
                 # unpack the results into the finished flag and the fitness
-                if isinstance(fitness, tuple):
-                    finished = fitness[1]
-                    fitness = fitness[0]
+                try:
+                    fitness, finished = fitness_finished
+                except TypeError: # Not (fitness, finished) tuple
+                    fitness = fitness_finished
                 self.__fitness_dict[fitness_key] = fitness
                 self.fitness_runs += 1  # keep track of how many times fitness is evaluated
 
@@ -336,6 +318,13 @@ class StandardOptimizer(Optimizer):
         # Parameters for metaheuristic optimization
         self._hyperparameters['_population_size'] = {
             'type': 'int', 'min': 2, 'max': 1026}
+
+
+def _print_fitnesses(iteration, fitnesses, best_solution, frequency=1):
+    if iteration == 1 or iteration % frequency == 0:
+        print 'Iteration: ' + str(iteration)
+        print 'Avg Fitness: ' + str(sum(fitnesses) / len(fitnesses))
+        print 'Best Fitness: ' + str(best_solution['fitness'])
 
 
 def _parse_parameter_locks(optimizer, meta_parameters, parameter_locks):

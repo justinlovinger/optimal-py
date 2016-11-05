@@ -29,7 +29,7 @@ import math
 
 import numpy
 
-from optimal import optimize
+from optimal import optimize, common
 
 EPSILON = 0.0000001
 
@@ -115,8 +115,8 @@ def _initial_population_gsa(population_size, solution_size,
         raise ValueError(
             "Lower and upper bounds much have a length equal to the problem size.")
 
-    return optimize.make_population(population_size, optimize.random_solution_real,
-                                    solution_size, lower_bounds, upper_bounds)
+    return common.make_population(population_size, common.random_solution_real,
+                                  solution_size, lower_bounds, upper_bounds)
 
 
 def _new_population_gsa(population, fitnesses, velocities,

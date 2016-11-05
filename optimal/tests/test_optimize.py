@@ -35,6 +35,11 @@ def simple_function(binary):
     return float(binary[0])+float(binary[1])+0.001, finished
 
 
+def test_optimize_solution_correct():
+    optimizer = GenAlg(simple_function, 2)
+    assert optimizer.optimize() == [1, 1]
+
+
 def test_get_hyperparameters():
     optimizer = optimize.StandardOptimizer(simple_function, 2)
 
