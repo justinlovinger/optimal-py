@@ -54,7 +54,8 @@ def _print_fitnesses(iteration, fitnesses, best_solution, frequency=1):
 class Optimizer(object):
     """Base class for optimization algorithms."""
 
-    def __init__(self, fitness_function, max_iterations=100, **kwargs):
+    def __init__(self, fitness_function,
+                 max_iterations=100, **kwargs):
         """Initialize general optimization attributes and bookkeeping
 
         Args:
@@ -63,10 +64,12 @@ class Optimizer(object):
             population_size: The number of solutions in every generation
             max_iterations: The number of iterations to optimize before stopping
         """
-        # Set paramaters for users problem
+        # Save users fitness function,
+        # parameters for the users fitness function,
+        # and decode function
         self._fitness_function = fitness_function
-        # Parameters for the users fitness function
         self._additional_parameters = kwargs
+        self._decode_function = lambda x: x
 
         # Set general algorithm paramaters
         self._max_iterations = max_iterations
@@ -142,7 +145,7 @@ class Optimizer(object):
         try:
             # Begin optimization loop
             for self.iteration in range(1, self._max_iterations + 1):
-                fitnesses, finished = self.__get_fitnesses(population)
+                fitnesses, solutions, finished = self.__get_fitnesses(population)
 
                 # If the best fitness from this iteration is better than
                 # the global best
@@ -150,7 +153,7 @@ class Optimizer(object):
                     # Store the new best solution
                     best_solution['fitness'] = max(fitnesses)
                     best_index = fitnesses.index(best_solution['fitness'])
-                    best_solution['solution'] = population[best_index][:]
+                    best_solution['solution'] = solutions[best_index][:]
 
                 if self.logging and self._logging_func:
                     self._logging_func(
@@ -177,31 +180,41 @@ class Optimizer(object):
     def __get_fitnesses(self, population):
         """Get the fitness for every solution in a population."""
         fitnesses = []
+        solutions = []
         finished = False
-        for solution in population:
-            str_solution = str(solution)
+        for encoded_solution in population:
+            fitness_key = tuple(encoded_solution)
             try:
-                # attempt to retrieve the fitness from the internal fitness
-                # memory
-                fitness = self.__fitness_dict[str_solution]
-            except KeyError:
-                # if the fitness is not remembered
-                # calculate the fitness, pass in any saved user arguments
+                # Attempt to retrieve fitness from cache
+                fitness = self.__fitness_dict[fitness_key]
+
+                # Will never be best solution, because we saw it already,
+                # so we don't need to decode.
+                solution = None
+            except KeyError: # Cache miss
+                # Decode solution, if user does not provide decode function
+                # we simply consider the encoded_solution to be the decoded solution
+                solution = self._decode_function(encoded_solution)
+
+                # Get fitness from user defined fitness function,
+                # with any argument they provide for it
                 fitness = self._fitness_function(
                     solution, **self._additional_parameters)
-                # if the user supplied fitness function includes the "finished" flag
+
+                # If the user supplied fitness function includes the "finished" flag,
                 # unpack the results into the finished flag and the fitness
                 if isinstance(fitness, tuple):
                     finished = fitness[1]
                     fitness = fitness[0]
-                self.__fitness_dict[str_solution] = fitness
+                self.__fitness_dict[fitness_key] = fitness
                 self.fitness_runs += 1  # keep track of how many times fitness is evaluated
 
             fitnesses.append(fitness)
+            solutions.append(solution)
             if finished:
                 break
 
-        return fitnesses, finished
+        return fitnesses, solutions, finished
 
     def _set_hyperparameters(self, parameters):
         """Set internal optimization parameters."""
