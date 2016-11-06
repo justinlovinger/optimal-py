@@ -24,7 +24,8 @@
 
 import pytest
 
-from optimal import crossentropy, examplefunctions, optimize, genalg
+from optimal import examplefunctions, optimize, GenAlg
+from optimal.algorithms import crossentropy
 
 
 @pytest.mark.parametrize('solution,pdf,expected', [
@@ -122,7 +123,7 @@ def test_metaoptimize_crossentropy():
     iterations_to_solution = optimizer.iteration
 
     # Test with metaoptimize, assert that iterations to solution is lower
-    optimizer.optimize_hyperparameters(smoothing=1, _meta_optimizer=genalg.GenAlg(None, None, 2, 1))
+    optimizer.optimize_hyperparameters(smoothing=1, _meta_optimizer=GenAlg(None, None, 2, 1))
     optimizer.optimize()
 
     assert optimizer._get_hyperparameters() != prev_hyperparameters

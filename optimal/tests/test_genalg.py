@@ -23,11 +23,11 @@
 ###############################################################################
 import pytest
 
-from optimal import genalg, examplefunctions, optimize
+from optimal import GenAlg, examplefunctions, optimize
 
 
 def test_genalg_sphere():
-    optimizer = genalg.GenAlg(examplefunctions.sphere, 32, 
+    optimizer = GenAlg(examplefunctions.sphere, 32, 
                               decode_func=examplefunctions.ackley_binary)
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
     optimizer.optimize()
@@ -38,7 +38,7 @@ def test_genalg_sphere():
 def test_genalg_problems():
     # Attempt to solve various problems
     # Assert that the optimizer can find the solutions
-    optimizer = genalg.GenAlg(examplefunctions.ackley, 32, 
+    optimizer = GenAlg(examplefunctions.ackley, 32, 
                               decode_func=examplefunctions.ackley_binary)
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
     optimizer.optimize()
@@ -49,7 +49,7 @@ def test_genalg_problems():
 
 @pytest.mark.slowtest()
 def test_metaoptimize_genalg():
-    optimizer = genalg.GenAlg(examplefunctions.ackley, 32, 
+    optimizer = GenAlg(examplefunctions.ackley, 32, 
                               decode_func=examplefunctions.ackley_binary)
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
     prev_hyperparameters = optimizer._get_hyperparameters()
@@ -59,7 +59,7 @@ def test_metaoptimize_genalg():
     iterations_to_solution = optimizer.iteration
 
     # Test with metaoptimize, assert that iterations to solution is lower
-    optimizer.optimize_hyperparameters(smoothing=1, _meta_optimizer=genalg.GenAlg(None, None, 2, 1))
+    optimizer.optimize_hyperparameters(smoothing=1, _meta_optimizer=GenAlg(None, None, 2, 1))
     optimizer.optimize()
 
     assert optimizer._get_hyperparameters() != prev_hyperparameters

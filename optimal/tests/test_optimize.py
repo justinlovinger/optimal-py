@@ -26,8 +26,7 @@ import copy
 
 import pytest
 
-from optimal import optimize
-from optimal.genalg import GenAlg
+from optimal import optimize, GenAlg
 
 
 def simple_function(binary):

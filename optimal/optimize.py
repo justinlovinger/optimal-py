@@ -271,11 +271,11 @@ class Optimizer(object):
             # Initialize default meta optimizer
             # GenAlg is used because it supports both discrete and continous
             # attributes
-            import genalg
+            from optimal import GenAlg
 
             # Create metaheuristic with computed decode function and soltuion
             # size
-            _meta_optimizer = genalg.GenAlg(
+            _meta_optimizer = GenAlg(
                 _meta_fitness, solution_size, **additional_parameters)
         else:
             # Adjust supplied metaheuristic for this problem

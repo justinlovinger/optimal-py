@@ -15,7 +15,7 @@ Copy the "optimal" folder to [python-path]/lib/site-packages
 # Usage
 	import math
 
-	from optimal import genalg
+	from optimal import GenAlg
 	from optimal import helpers
 
 	# The genetic algorithm uses binary solutions.
@@ -55,14 +55,25 @@ Copy the "optimal" folder to [python-path]/lib/site-packages
 	# Setup and run the genetic algorithm, using our fitness function, 
 	# and a chromosome size of 32
 	# Additional fitness function arguments are added as keyword arguments
-	my_genalg = genalg.GenAlg(ackley, 32,
+	my_genalg = GenAlg(ackley, 32,
 							  decode_func=decode_ackley)
 	best_solution = my_genalg.optimize()
 
 	print decode_ackley(best_solution)
 	
 Important notes:
+
 * Fitness function must take solution as its first argument
 * Fitness function must return a real number as its first return value
 
 For further usage details, see comprehensive doc strings.
+
+# Major Changes
+## 11/5/2016
+Library reorganized with greater reliance on \_\_init\_\_.py.
+
+Optimizers can now be imported with:
+
+    from optimal import GenAlg, GSA, CrossEntropy
+
+Etc.

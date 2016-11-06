@@ -22,4 +22,9 @@
 #SOFTWARE.
 ###############################################################################
 
-__all__ = ['helpers', 'genalg', 'gsa', 'crossentropy', 'benchmark']
+# All algorithms
+from optimal.algorithms import gaoperators # Also operators for GA
+from .algorithms.genalg import GenAlg
+
+from .algorithms.gsa import GSA
+from .algorithms.crossentropy import CrossEntropy
