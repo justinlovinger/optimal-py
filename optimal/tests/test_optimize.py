@@ -26,21 +26,23 @@ import copy
 
 import pytest
 
-from optimal import optimize, GenAlg
+from optimal import optimize, GenAlg, Problem
 
 
 def simple_function(binary):
     finished = binary[0] and binary[1]
     return float(binary[0])+float(binary[1])+0.001, finished
 
+simple_problem = Problem(simple_function)
+
 
 def test_optimize_solution_correct():
-    optimizer = GenAlg(simple_function, 2)
+    optimizer = GenAlg(simple_problem, 2)
     assert optimizer.optimize() == [1, 1]
 
 
 def test_get_hyperparameters():
-    optimizer = optimize.StandardOptimizer(simple_function, 2)
+    optimizer = optimize.StandardOptimizer(simple_problem, 2)
 
     hyperparameters = optimizer._get_hyperparameters()
     assert hyperparameters != None
@@ -48,7 +50,7 @@ def test_get_hyperparameters():
 
 
 def test_set_hyperparameters_wrong_parameter():
-    optimizer = optimize.StandardOptimizer(simple_function, 2)
+    optimizer = optimize.StandardOptimizer(simple_problem, 2)
 
     with pytest.raises(ValueError):
         optimizer._set_hyperparameters({'test': None})
@@ -61,7 +63,7 @@ def test_meta_optimize_parameter_locks():
     # Only optimize mutation chance
     parameter_locks=['_population_size', '_crossover_chance', '_selection_function', '_crossover_function']
 
-    my_genalg = GenAlg(simple_function, 2)
+    my_genalg = GenAlg(simple_problem, 2)
     original = copy.deepcopy(my_genalg)
 
     # Low smoothing for faster performance

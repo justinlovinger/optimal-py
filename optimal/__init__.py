@@ -24,7 +24,10 @@
 
 # All algorithms
 from optimal.algorithms import gaoperators # Also operators for GA
-from .algorithms.genalg import GenAlg
+from optimal.algorithms.genalg import GenAlg
 
-from .algorithms.gsa import GSA
-from .algorithms.crossentropy import CrossEntropy
+from optimal.algorithms.gsa import GSA
+from optimal.algorithms.crossentropy import CrossEntropy
+
+# Necessary classes
+from optimal.optimize import Problem

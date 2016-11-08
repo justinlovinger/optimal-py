@@ -40,15 +40,14 @@ class GSA(optimize.StandardOptimizer):
     Perform gravitational search algorithm optimization with a given fitness function.
     """
 
-    def __init__(self, fitness_function, solution_size, lower_bounds, upper_bounds,
+    def __init__(self, problem, solution_size, lower_bounds, upper_bounds,
                  population_size=20, max_iterations=100,
                  grav_initial=1.0, grav_reduction_rate=0.5,
                  **kwargs):
         """Create an object that optimizes a given fitness function with GSA.
 
         Args:
-            fitness_function: A function representing the problem to solve,
-                              must return a fitness value.
+            problem: An instance of Problem. The problem to solve.
             solution_size: The number of real values in each solution.
             lower_bounds: list, each value is a lower bound for the corresponding
                           part of the solution.
@@ -59,7 +58,7 @@ class GSA(optimize.StandardOptimizer):
             grav_initial: Initial value for grav parameter (0 - 1)
             grav_reduction_rate: Rate that grav parameter decreases over time (0 - 1)
         """
-        super(GSA, self).__init__(fitness_function, solution_size, population_size,
+        super(GSA, self).__init__(problem, solution_size, population_size,
                                   max_iterations, **kwargs)
 
         # set parameters for users problem

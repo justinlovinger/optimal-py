@@ -143,7 +143,7 @@ def compare(optimizers, runs=20):
         # For nice human readable dictionaries, extract useful names from
         # optimizer
         class_name = optimizer.__class__.__name__
-        fitness_func_name = optimizer._fitness_function.__name__
+        fitness_func_name = optimizer._problem._fitness_function.__name__
         key_name = '{} {}'.format(class_name, fitness_func_name)
 
         # Keep track of how many optimizers of each class / fitness func

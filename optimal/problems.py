@@ -30,7 +30,7 @@ Don't rely on the functionality from this module, as it is subject to change.
 import math
 import functools
 
-from optimal import helpers
+from optimal import Problem, helpers
 
 
 def decode_binary(binary, min_, max_):
@@ -40,37 +40,26 @@ def decode_binary(binary, min_, max_):
     return x1, x2
 
 
-def decode_real(values):
-    return values
-
 ###########################
 # Sphere
 ##########################
-def sphere(solution, decode_func):
-    x1, x2 = decode_func(solution)
+def sphere_function(solution):
+    x1, x2 = solution
 
     output = x1**2 + x2**2
 
     finished = output <= 0.01
     return 1.0 / output, finished
 
+sphere_binary = Problem(sphere_function, functools.partial(decode_binary, min_=-5.0, max_=5.0))
+sphere_real = Problem(sphere_function)
+
 ###########################
 # Ackley
 ##########################
-ACKLEY_MIN = -5.0
-ACKLEY_MAX = 5.0
-
-ackley_binary = functools.partial(
-    decode_binary, min_=ACKLEY_MIN, max_=ACKLEY_MAX)
-
-# The first argument must always be a potential solution.
-# Additional arguments can optionally come after
-# The optimizer will feed additional arguements to this function
-
-
-def ackley(solution, decode_func):
+def ackley_function(solution):
     # Turn our solution of bits into floating point values
-    x1, x2 = decode_func(solution)
+    x1, x2 = solution
 
     # Ackley's function
     # A common mathematical optimization problem
@@ -88,17 +77,14 @@ def ackley(solution, decode_func):
 
     return fitness, finished
 
+ackley_binary = Problem(ackley_function, functools.partial(decode_binary, min_=-5.0, max_=5.0))
+ackley_real = Problem(ackley_function)
+
 ######################
 # Levi
 ######################
-LEVI_MIN = -5.0
-LEVI_MAX = 5.0
-
-levi_binary = functools.partial(decode_binary, min_=LEVI_MIN, max_=LEVI_MAX)
-
-
-def levis_function(solution, decode_func):
-    x1, x2 = decode_func(solution)
+def levis_function(solution):
+    x1, x2 = solution
 
     output = math.sin(3 * math.pi * x1)**2 + (x1 - 1)**2 * \
         (1 + math.sin(3 * math.pi * math.pi * x2)**2) + (x2 - 1)**2 * \
@@ -107,17 +93,14 @@ def levis_function(solution, decode_func):
 
     return 1 / output, finished
 
+levis_binary = Problem(levis_function, functools.partial(decode_binary, min_=-5.0, max_=5.0))
+levis_real = Problem(levis_function)
+
 ######################
 # Eggholder
 ######################
-EGG_MIN = 256.0
-EGG_MAX = 512.0
-
-egg_binary = functools.partial(decode_binary, min_=EGG_MIN, max_=EGG_MAX)
-
-
-def eggholder_function(solution, decode_func):
-    x, y = decode_func(solution)
+def eggholder_function(solution):
+    x, y = solution
 
     output = -(y + 47) * math.sin(math.sqrt(math.fabs(y + x / 2 + 47))) \
         - x * math.sin(math.sqrt(math.fabs(x - (y + 47))))
@@ -125,17 +108,15 @@ def eggholder_function(solution, decode_func):
 
     return 1 / (output + 959.6407), finished
 
+eggholder_binary = Problem(
+    eggholder_function, functools.partial(decode_binary, min_=256.0, max_=512.0))
+eggholder_real = Problem(eggholder_function)
+
 ######################
 # Holder's Table
 ######################
-TABLE_MIN = -10.0
-TABLE_MAX = 10.0
-
-table_binary = functools.partial(decode_binary, min_=TABLE_MIN, max_=TABLE_MAX)
-
-
-def table_function(solution, decode_func):
-    x, y = decode_func(solution)
+def table_function(solution):
+    x, y = solution
 
     output = -math.fabs(math.sin(x) * math.cos(y) *
                         math.exp(math.fabs(1 - (math.sqrt(x * x + y * y)) / math.pi)))
@@ -143,18 +124,15 @@ def table_function(solution, decode_func):
 
     return 1 / (output + 19.2085), finished
 
+
+table_binary = Problem(table_function, functools.partial(decode_binary, min_=-10.0, max_=10.0))
+table_real = Problem(table_function)
+
 ######################
 # Shaffer N2
 ######################
-SHAFFER_MIN = -25.0
-SHAFFER_MAX = 25.0
-
-shaffer_binary = functools.partial(
-    decode_binary, min_=SHAFFER_MIN, max_=SHAFFER_MAX)
-
-
-def shaffer_function(solution, decode_func):
-    x, y = decode_func(solution)
+def shaffer_function(solution):
+    x, y = solution
 
     output = 0.5 + (math.sin(x * x - y * y)**2 - 0.5) / \
         (1 + 0.001 * (x * x + y * y))**2
@@ -162,20 +140,22 @@ def shaffer_function(solution, decode_func):
 
     return 1 / output, finished
 
+
+shaffer_binary = Problem(shaffer_function, functools.partial(decode_binary, min_=-25.0, max_=25.0))
+shaffer_real = Problem(shaffer_function)
+
 ######################
 # Cross Tray
 ######################
-CROSS_MIN = -5.0
-CROSS_MAX = 5.0
-
-cross_binary = functools.partial(decode_binary, min_=CROSS_MIN, max_=CROSS_MAX)
-
-
-def cross_function(solution, decode_func):
-    x, y = decode_func(solution)
+def cross_function(solution):
+    x, y = solution
 
     output = -0.0001 * (math.fabs(math.sin(x) * math.sin(y) * math.exp(
         math.fabs(100 - math.sqrt(x * x + y * y) / math.pi))) + 1)**0.1
     finished = output < -2.062  # solution == -2.06261
 
     return 1 / (output + 2.06261), finished
+
+
+cross_binary = Problem(cross_function, functools.partial(decode_binary, min_=-5.0, max_=5.0))
+cross_real = Problem(cross_function)

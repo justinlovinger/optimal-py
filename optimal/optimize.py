@@ -29,25 +29,47 @@ import operator
 from optimal import helpers
 
 
+class Problem(object):
+    """The problem to solve."""
+    def __init__(self, fitness_function, decode_function=lambda x: x,
+                 fitness_args=[], decode_args=[],
+                 fitness_kwargs={}, decode_kwargs={}):
+        self._fitness_function = fitness_function
+        self._decode_function = decode_function
+
+        self._fitness_args = fitness_args
+        self._decode_args = decode_args
+
+        self._fitness_kwargs = fitness_kwargs
+        self._decode_kwargs = decode_kwargs
+
+    def get_fitness(self, solution):
+        """Return fitness for the given solution."""
+        return self._fitness_function(solution, *self._fitness_args, **self._fitness_kwargs)
+
+    def decode_solution(self, encoded_solution):
+        """Return solution from an encoded representation."""
+        return self._decode_function(encoded_solution, *self._decode_args, **self._decode_kwargs)
+
+
 class Optimizer(object):
     """Base class for optimization algorithms."""
 
-    def __init__(self, fitness_function,
+    def __init__(self, problem,
                  max_iterations=100, **kwargs):
         """Initialize general optimization attributes and bookkeeping
 
         Args:
-            fitness_function: A function representing the problem to solve,
-                              must return a fitness value.
+            problem: An instance of Problem. The problem to solve.
             population_size: The number of solutions in every generation
             max_iterations: The number of iterations to optimize before stopping
         """
         # Save users fitness function,
         # parameters for the users fitness function,
         # and decode function
-        self._fitness_function = fitness_function
-        self._additional_parameters = kwargs
-        self._decode_function = lambda x: x
+        if not isinstance(problem, (Problem, type(None))): # Allow None for "not yet set"
+            raise TypeError('problem must be an instance of Problem class')
+        self._problem = problem
 
         # Set general algorithm paramaters
         self._max_iterations = max_iterations
@@ -175,12 +197,11 @@ class Optimizer(object):
             except KeyError: # Cache miss
                 # Decode solution, if user does not provide decode function
                 # we simply consider the encoded_solution to be the decoded solution
-                solution = self._decode_function(encoded_solution)
+                solution = self._problem.decode_solution(encoded_solution)
 
                 # Get fitness from user defined fitness function,
                 # with any argument they provide for it
-                fitness_finished = self._fitness_function(
-                    solution, **self._additional_parameters)
+                fitness_finished = self._problem.get_fitness(solution)
 
                 # If the user supplied fitness function includes the "finished" flag,
                 # unpack the results into the finished flag and the fitness
@@ -251,7 +272,7 @@ class Optimizer(object):
         # If the user does not specify a list of problems, default to using
         # only the problem in the optimizer
         if problems is None:
-            problems = [(self._fitness_function, self._additional_parameters)]
+            problems = [self._problem]
 
         # A master fitness dictionary can be stored for use between calls
         # to meta_fitness
@@ -267,6 +288,7 @@ class Optimizer(object):
             '_runs': smoothing,
             '_master_fitness_dict': master_fitness_dict,
         }
+        META_FITNESS = Problem(_meta_fitness_func, fitness_kwargs=additional_parameters)
         if _meta_optimizer is None:
             # Initialize default meta optimizer
             # GenAlg is used because it supports both discrete and continous
@@ -275,13 +297,11 @@ class Optimizer(object):
 
             # Create metaheuristic with computed decode function and soltuion
             # size
-            _meta_optimizer = GenAlg(
-                _meta_fitness, solution_size, **additional_parameters)
+            _meta_optimizer = GenAlg(META_FITNESS, solution_size)
         else:
             # Adjust supplied metaheuristic for this problem
-            _meta_optimizer._fitness_function = _meta_fitness
+            _meta_optimizer._problem = META_FITNESS
             _meta_optimizer._solution_size = solution_size
-            _meta_optimizer._additional_parameters = additional_parameters
 
         # Determine the best hyperparameters with a metaheuristic
         best_solution = _meta_optimizer.optimize()
@@ -297,19 +317,17 @@ class Optimizer(object):
 class StandardOptimizer(Optimizer):
     """Adds support for standard metaheuristic hyperparameters."""
 
-    def __init__(self, fitness_function, solution_size, population_size=20,
+    def __init__(self, problem, solution_size, population_size=20,
                  max_iterations=100, **kwargs):
         """Initialize general optimization attributes and bookkeeping
 
         Args:
-            fitness_function: A function representing the problem to solve,
-                              must return a fitness value.
+            problem: An instance of Problem. The problem to solve.
             solution_size: The number of values in each solution.
             population_size: The number of solutions in every generation
             max_iterations: The number of iterations to optimize before stopping
         """
-        super(StandardOptimizer, self).__init__(
-            fitness_function, max_iterations, **kwargs)
+        super(StandardOptimizer, self).__init__(problem, max_iterations, **kwargs)
 
         # Set general algorithm paramaters
         self._solution_size = solution_size
@@ -424,8 +442,8 @@ def _make_hyperparameter_decode_func(locked_values, meta_parameters):
     return decode
 
 
-def _meta_fitness(solution, _decode_func, _optimizer, _problems,
-                  _master_fitness_dict, _runs=20):
+def _meta_fitness_func(solution, _decode_func, _optimizer, _problems,
+                       _master_fitness_dict, _runs=20):
     """Test a metaheuristic with parameters encoded in solution.
 
     Our goal is to minimize number of evaluation runs until a solution is found,
@@ -454,8 +472,7 @@ def _meta_fitness(solution, _decode_func, _optimizer, _problems,
     for _ in range(_runs):
         for problem in _problems:
             # Set problem
-            optimizer._fitness_function = problem[0]
-            optimizer._additional_parameters = problem[1]
+            optimizer._problem = problem
 
             # Get performance for problem
             optimizer.optimize()

@@ -24,7 +24,7 @@
 
 import pytest
 
-from optimal import examplefunctions, optimize, GenAlg
+from optimal import problems, optimize, GenAlg
 from optimal.algorithms import crossentropy
 
 
@@ -89,8 +89,8 @@ def test_best_pdf():
 
 
 def test_crossentropy_sphere():
-    optimizer = crossentropy.CrossEntropy(examplefunctions.sphere, 32, population_size=20, max_iterations=1000,
-                                          decode_func=examplefunctions.ackley_binary)
+    optimizer = crossentropy.CrossEntropy(
+        problems.sphere_binary, 32, population_size=20, max_iterations=1000)
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
     optimizer.optimize()
     assert optimizer.solution_found
@@ -101,8 +101,8 @@ def test_crossentropy_problems():
     # Attempt to solve various problems
     # Assert that the optimizer can find the solutions
     # NOTE: since crossentropy is not very effective, we give it simpler problems
-    optimizer = crossentropy.CrossEntropy(examplefunctions.sphere, 32, population_size=20, max_iterations=1000,
-                                          decode_func=examplefunctions.ackley_binary)
+    optimizer = crossentropy.CrossEntropy(
+        problems.sphere_binary, 32, population_size=20, max_iterations=1000)
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
     optimizer.optimize()
     print 1.0 / optimizer.best_fitness
@@ -113,8 +113,7 @@ def test_crossentropy_problems():
 
 @pytest.mark.slowtest()
 def test_metaoptimize_crossentropy():
-    optimizer = crossentropy.CrossEntropy(examplefunctions.ackley, 32, 
-                                          decode_func=examplefunctions.ackley_binary)
+    optimizer = crossentropy.CrossEntropy(problems.sphere_binary, 32)
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
     prev_hyperparameters = optimizer._get_hyperparameters()
 

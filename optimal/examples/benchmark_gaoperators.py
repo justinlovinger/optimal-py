@@ -29,26 +29,26 @@ For this example, we'll compare the one point and uniform crossover operators
 For reference only.
 """
 
+# Add library to path
+import sys, os
+sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
 import copy
 import pprint
 
-from optimal import genalg
+from optimal import GenAlg
 from optimal import gaoperators
-from optimal import examplefunctions
+from optimal import problems
 from optimal import benchmark
 
 
-FUNCTIONS = [
-    {'func': examplefunctions.levis_function,
-     'decode': examplefunctions.levi_binary},
-    {'func': examplefunctions.eggholder_function,
-     'decode': examplefunctions.egg_binary},
-    {'func': examplefunctions.table_function,
-     'decode': examplefunctions.table_binary},
-    {'func': examplefunctions.shaffer_function,
-     'decode': examplefunctions.shaffer_binary},
-    {'func': examplefunctions.cross_function,
-     'decode': examplefunctions.cross_binary},
+PROBLEMS = [
+    problems.ackley_binary,
+    problems.levis_binary,
+    problems.eggholder_binary,
+    problems.table_binary,
+    problems.shaffer_binary,
+    problems.cross_binary
 ]
 
 
@@ -57,14 +57,13 @@ def benchmark_multi(optimizer):
 
     # First, create optimizer for each function, for use in compare
     optimizers = []
-    for function in FUNCTIONS:
+    for problem in PROBLEMS:
         # Set optimizer function
         # we can easily do this since all functions require the same solution
         # size
         # NOTE: in future versions, a better method of changing the optimizer problem
         # will be included (avoiding the need to access protected members)
-        optimizer._fitness_function = function['func']
-        optimizer._additional_parameters['decode_func'] = function['decode']
+        optimizer._problem = problem
 
         # Make a copy, or we'll only have one optimizer repeated in our list
         optimizers.append(copy.deepcopy(optimizer))
@@ -76,10 +75,8 @@ def benchmark_multi(optimizer):
 
 # Create the genetic algorithm configurations to compare
 # In reality, we would also want to optimize other hyperparameters
-ga_onepoint = genalg.GenAlg(None, 32,
-                            crossover_function=gaoperators.one_point_crossover)
-ga_uniform = genalg.GenAlg(None, 32,
-                           crossover_function=gaoperators.uniform_crossover)
+ga_onepoint = GenAlg(None, 32, crossover_function=gaoperators.one_point_crossover)
+ga_uniform = GenAlg(None, 32, crossover_function=gaoperators.uniform_crossover)
 
 # Run a benchmark for multiple problems, for robust testing
 onepoint_stats = benchmark_multi(ga_onepoint)
