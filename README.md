@@ -16,6 +16,7 @@ Copy the "optimal" folder to [python-path]/lib/site-packages
 	import math
 
 	from optimal import GenAlg
+	from optimal import Problem
 	from optimal import helpers
 
 	# The genetic algorithm uses binary solutions.
@@ -28,10 +29,9 @@ Copy the "optimal" folder to [python-path]/lib/site-packages
 		return x1, x2
 
 	# ackley is our fitness function
-	# This is how a user defines their problem
-	def ackley(solution, decode_func):
-		# Turn our solution of bits into floating point values
-		x1, x2 = decode_func(solution)
+	# This is how a user defines to goal of their problem
+	def ackley_fitness(solution):
+		x1, x2 = solution
 
 		# Ackley's function
 		# A common mathematical optimization problem
@@ -52,14 +52,19 @@ Copy the "optimal" folder to [python-path]/lib/site-packages
 		# Second return argument is a boolean, and optional
 		return fitness, finished
 
-	# Setup and run the genetic algorithm, using our fitness function, 
-	# and a chromosome size of 32
-	# Additional fitness function arguments are added as keyword arguments
-	my_genalg = GenAlg(ackley, 32, decode_func=decode_ackley)
-	best_solution = my_genalg.optimize()
+	# Define a problem instance to optimize
+	# We can optionally include a decode function
+	# The optimizer will pass the decoded solution into your fitness function
+	# Additional fitness function and decode function parameters can also be added
+	ackley = Problem(ackley_fitness, decode_function=decode_ackley)
 
-	print decode_ackley(best_solution)
-	
+	# Create a genetic algorithm with a chromosome size of 32,
+	# and use it to solve our problem
+	my_genalg = GenAlg(32)
+	best_solution = my_genalg.optimize(ackley)
+
+	print best_solution
+
 Important notes:
 
 * Fitness function must take solution as its first argument
@@ -73,6 +78,9 @@ problem now an argument of Optimizer.optimize, instead of Optimizer.\_\_init\_\_
 
 ## 11/10/2016
 max\_iterations now an argument of Optimizer.optimize, instead of Optimizer.\_\_init\_\_.
+
+## 11/8/2016
+Optimizer now takes a problem instance, instead of a fitness function and kwargs.
 
 ## 11/5/2016
 Library reorganized with greater reliance on \_\_init\_\_.py.
