@@ -55,14 +55,11 @@ class Problem(object):
 class Optimizer(object):
     """Base class for optimization algorithms."""
 
-    def __init__(self, problem,
-                 max_iterations=100, **kwargs):
-        """Initialize general optimization attributes and bookkeeping
+    def __init__(self, problem):
+        """Initialize general optimization attributes and bookkeeping.
 
         Args:
             problem: An instance of Problem. The problem to solve.
-            population_size: The number of solutions in every generation
-            max_iterations: The number of iterations to optimize before stopping
         """
         # Save users fitness function,
         # parameters for the users fitness function,
@@ -71,8 +68,8 @@ class Optimizer(object):
             raise TypeError('problem must be an instance of Problem class')
         self._problem = problem
 
-        # Set general algorithm paramaters
-        self._max_iterations = max_iterations
+        # Runtime parameters, keep in object, so subclasses can view
+        self.__max_iterations = None
 
         # Parameters for metaheuristic optimization
         self._hyperparameters = {}
@@ -92,7 +89,10 @@ class Optimizer(object):
         self.best_fitness = None
         self.solution_found = False
 
-    
+    @property
+    def _max_iterations(self):
+        return self.__max_iterations
+
     def initialize(self):
         """Initialize algorithm parameters before each optimization run.
 
@@ -119,19 +119,23 @@ class Optimizer(object):
         """
         raise NotImplementedError("new_population is not implemented.")
 
-    def optimize(self):
+    def optimize(self, max_iterations=100):
         """Find the optimal inputs for a given fitness function.
+
+        Args:
+            max_iterations: The number of iterations to optimize before stopping.
 
         Returns:
             list; The best solution, as it is encoded.
         """
-        self._reset_bookkeeping()
+        # Set first, incase optimizer uses _max_iterations in initilization
+        self.__max_iterations = max_iterations
 
         # Initialize algorithm
-        best_solution = {'solution': None, 'fitness': None}
-        self.initialize()
-        population = self.initial_population()
+        self._reset()
 
+        best_solution = {'solution': None, 'fitness': None}
+        population = self.initial_population()
         try:
             # Begin optimization loop
             for self.iteration in range(1, self._max_iterations + 1):
@@ -166,6 +170,10 @@ class Optimizer(object):
                 self.__fitness_dict = {}  # Clear memory
 
         return self.best_solution
+
+    def _reset(self):
+        self._reset_bookkeeping()
+        self.initialize()
 
     def _reset_bookkeeping(self):
         """Reset bookkeeping parameters to initial values.
@@ -237,17 +245,19 @@ class Optimizer(object):
         return hyperparameters
 
     def optimize_hyperparameters(self, parameter_locks=None, problems=None,
-                                 smoothing=20, _meta_optimizer=None, _low_memory=True):
+                                 smoothing=20, max_iterations=100,
+                                 _meta_optimizer=None, _low_memory=True):
         """Optimize hyperparameters for a given problem.
 
         Args:
             parameter_locks: a list of strings, each corresponding to a hyperparamter
                              that should not be optimized.
-            problems: list of fitness_function, arguments, pairs,
+            problems: list of problem instances,
                       allowing optimization based on multiple similar problems.
-            low_memory: disable performance enhancements to save memory
-                        (they use a lot of memory otherwise).
             smoothing: int; number of runs to average over for each set of hyperparameters.
+            max_iterations: The number of iterations to optimize before stopping.
+            _low_memory: disable performance enhancements to save memory
+                         (they use a lot of memory otherwise).
         """
         if smoothing <= 0:
             raise ValueError('smoothing must be > 0')
@@ -304,7 +314,7 @@ class Optimizer(object):
             _meta_optimizer._solution_size = solution_size
 
         # Determine the best hyperparameters with a metaheuristic
-        best_solution = _meta_optimizer.optimize()
+        best_solution = _meta_optimizer.optimize(max_iterations=max_iterations)
         best_parameters = decode(best_solution)
 
         # Set the hyperparameters inline
@@ -317,17 +327,15 @@ class Optimizer(object):
 class StandardOptimizer(Optimizer):
     """Adds support for standard metaheuristic hyperparameters."""
 
-    def __init__(self, problem, solution_size, population_size=20,
-                 max_iterations=100, **kwargs):
+    def __init__(self, problem, solution_size, population_size=20):
         """Initialize general optimization attributes and bookkeeping
 
         Args:
             problem: An instance of Problem. The problem to solve.
             solution_size: The number of values in each solution.
-            population_size: The number of solutions in every generation
-            max_iterations: The number of iterations to optimize before stopping
+            population_size: The number of solutions in every generation.
         """
-        super(StandardOptimizer, self).__init__(problem, max_iterations, **kwargs)
+        super(StandardOptimizer, self).__init__(problem)
 
         # Set general algorithm paramaters
         self._solution_size = solution_size

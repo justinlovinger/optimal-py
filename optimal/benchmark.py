@@ -27,6 +27,7 @@
 import math
 import copy
 import numbers
+import collections
 
 # stats:
 # stats['runs'] -> [{'stat_name' -> stat}, ]
@@ -85,7 +86,7 @@ def _add_mean_sd_to_stats(stats, key='runs'):
     stats['standard_deviation'] = standard_deviation
 
 
-def benchmark(optimizer, runs=20):
+def benchmark(optimizer, max_iterations=100, runs=20):
     """Run an optimizer through a problem multiple times.
 
     Returns:
@@ -101,7 +102,7 @@ def benchmark(optimizer, runs=20):
     # The stochastic nature of metaheuristics make this necessary
     # for an accurate evaluation
     for _ in range(runs):
-        optimizer.optimize()
+        optimizer.optimize(max_iterations=max_iterations)
 
         # Convert bool to number for mean and standard deviation calculations
         if optimizer.solution_found:
@@ -127,19 +128,25 @@ def benchmark(optimizer, runs=20):
     return stats
 
 
-def compare(optimizers, runs=20):
+def compare(optimizers, all_max_iterations=100, runs=20):
     """Compare a set of optimizers.
 
     Args:
         optimizers: list; A list of optimizers to compare.
+        all_max_iterations: list/int; Either the max iterations for all optimizers,
+            or a list of max iterations, one for each optimizer.
         runs: int; How many times to run each optimizer (smoothness)
 
     Returns:
         dict; mapping optimizer identifier to stats.
     """
+    # If max_iterations is an integer, repeat it into a list
+    if not isinstance(all_max_iterations, collections.Iterable):
+        all_max_iterations = [all_max_iterations]*len(optimizers)
+
     stats = {}
     key_counts = {}
-    for optimizer in optimizers:
+    for optimizer, max_iterations in zip(optimizers, all_max_iterations):
         # For nice human readable dictionaries, extract useful names from
         # optimizer
         class_name = optimizer.__class__.__name__
@@ -159,7 +166,7 @@ def compare(optimizers, runs=20):
         print key + ': ',
 
         # Finally, get the actual stats
-        stats[key] = benchmark(optimizer, runs)
+        stats[key] = benchmark(optimizer, max_iterations=max_iterations, runs=runs)
 
         print
 

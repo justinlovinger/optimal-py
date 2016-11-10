@@ -69,7 +69,7 @@ def benchmark_multi(optimizer):
         optimizers.append(copy.deepcopy(optimizer))
 
     # Get our benchmark stats
-    all_stats = benchmark.compare(optimizers, 100)
+    all_stats = benchmark.compare(optimizers, runs=100)
     return benchmark.aggregate(all_stats)
 
 

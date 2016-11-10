@@ -41,7 +41,7 @@ class GSA(optimize.StandardOptimizer):
     """
 
     def __init__(self, problem, solution_size, lower_bounds, upper_bounds,
-                 population_size=20, max_iterations=100,
+                 population_size=20,
                  grav_initial=1.0, grav_reduction_rate=0.5,
                  **kwargs):
         """Create an object that optimizes a given fitness function with GSA.
@@ -54,12 +54,10 @@ class GSA(optimize.StandardOptimizer):
             upper_bounds: list, each value is a upper bound for the corresponding
                           part of the solution.
             population_size: The number of potential solutions in every generation
-            max_iterations: The number of iterations to optimize before stopping
             grav_initial: Initial value for grav parameter (0 - 1)
             grav_reduction_rate: Rate that grav parameter decreases over time (0 - 1)
         """
-        super(GSA, self).__init__(problem, solution_size, population_size,
-                                  max_iterations, **kwargs)
+        super(GSA, self).__init__(problem, solution_size, population_size)
 
         # set parameters for users problem
         self._lower_bounds = lower_bounds

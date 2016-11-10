@@ -38,24 +38,21 @@ class GenAlg(optimize.StandardOptimizer):
     Perform genetic algorithm optimization with a given fitness function."""
 
     def __init__(self, problem, chromosome_size, population_size=20,
-                 max_iterations=100, mutation_chance=0.02, crossover_chance=0.7,
+                 mutation_chance=0.02, crossover_chance=0.7,
                  selection_function=gaoperators.tournament_selection,
-                 crossover_function=gaoperators.one_point_crossover,
-                 **kwargs):
+                 crossover_function=gaoperators.one_point_crossover):
         """Create an object that optimizes a given fitness function with GenAlg.
 
         Args:
             problem: An instance of Problem. The problem to solve.
             chromosome_size: The number of genes (bits) in every chromosome.
             population_size: The number of chromosomes in every generation
-            max_iterations: The number of iterations to optimize before stopping
             mutation_chance: the chance that a bit will be flipped during mutation
             crossover_chance: the chance that two parents will be crossed during crossover
             selection_function: A function that will select parents for crossover and mutation
             crossover_function: A function that will cross two parents
         """
-        super(GenAlg, self).__init__(problem, chromosome_size, population_size,
-                                     max_iterations, **kwargs)
+        super(GenAlg, self).__init__(problem, chromosome_size, population_size)
 
         # Set genetic algorithm parameters
         self._mutation_chance = mutation_chance

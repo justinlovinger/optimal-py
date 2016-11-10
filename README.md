@@ -55,8 +55,7 @@ Copy the "optimal" folder to [python-path]/lib/site-packages
 	# Setup and run the genetic algorithm, using our fitness function, 
 	# and a chromosome size of 32
 	# Additional fitness function arguments are added as keyword arguments
-	my_genalg = GenAlg(ackley, 32,
-							  decode_func=decode_ackley)
+	my_genalg = GenAlg(ackley, 32, decode_func=decode_ackley)
 	best_solution = my_genalg.optimize()
 
 	print decode_ackley(best_solution)
@@ -69,6 +68,9 @@ Important notes:
 For further usage details, see comprehensive doc strings.
 
 # Major Changes
+## 11/10/2016
+max\_iterations now an argument of Optimizer.optimize, instead of Optimizer.\_\_init\_\_.
+
 ## 11/5/2016
 Library reorganized with greater reliance on \_\_init\_\_.py.
 
