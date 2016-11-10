@@ -28,9 +28,9 @@ from optimal import GSA, GenAlg, problems, optimize
 
 
 def test_gsa_sphere():
-    optimizer = GSA(problems.sphere_real, 2, [-5.0]*2, [5.0]*2, max_iterations=1000)
+    optimizer = GSA(2, [-5.0]*2, [5.0]*2)
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
-    optimizer.optimize()
+    optimizer.optimize(problems.sphere_real, max_iterations=1000)
     assert optimizer.solution_found
 
 
@@ -38,9 +38,9 @@ def test_gsa_sphere():
 def test_gsa_problems():
     # Attempt to solve various problems
     # Assert that the optimizer can find the solutions
-    optimizer = GSA(problems.ackley_real, 2, [-5.0]*2, [5.0]*2)
+    optimizer = GSA(2, [-5.0]*2, [5.0]*2)
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
-    optimizer.optimize(max_iterations=1000)
+    optimizer.optimize(problems.ackley_real, max_iterations=1000)
     assert optimizer.solution_found
 
     # TODO: test other functions
@@ -48,18 +48,19 @@ def test_gsa_problems():
 
 @pytest.mark.slowtest()
 def test_metaoptimize_gsa():
-    optimizer = GSA(problems.sphere_real, 2, [-5.0]*2, [5.0]*2, max_iterations=1000)
+    optimizer = GSA(2, [-5.0]*2, [5.0]*2)
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
     prev_hyperparameters = optimizer._get_hyperparameters()
 
     # Test without metaoptimize, save iterations to solution
-    optimizer.optimize()
+    optimizer.optimize(problems.sphere_real)
     iterations_to_solution = optimizer.iteration
 
     # Test with metaoptimize, assert that iterations to solution is lower
     optimizer.optimize_hyperparameters(
-        smoothing=1, max_iterations=1, _meta_optimizer=GenAlg(None, None, population_size=2))
-    optimizer.optimize()
+        problems.sphere_real, smoothing=1, max_iterations=1,
+        _meta_optimizer=GenAlg(None, population_size=2))
+    optimizer.optimize(problems.sphere_real)
 
     assert optimizer._get_hyperparameters() != prev_hyperparameters
     #assert optimizer.iteration < iterations_to_solution # Improvements are made

@@ -69,6 +69,9 @@ For further usage details, see comprehensive doc strings.
 
 # Major Changes
 ## 11/10/2016
+problem now an argument of Optimizer.optimize, instead of Optimizer.\_\_init\_\_.
+
+## 11/10/2016
 max\_iterations now an argument of Optimizer.optimize, instead of Optimizer.\_\_init\_\_.
 
 ## 11/5/2016

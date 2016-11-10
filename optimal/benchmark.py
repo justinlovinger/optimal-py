@@ -86,7 +86,7 @@ def _add_mean_sd_to_stats(stats, key='runs'):
     stats['standard_deviation'] = standard_deviation
 
 
-def benchmark(optimizer, max_iterations=100, runs=20):
+def benchmark(optimizer, problem, max_iterations=100, runs=20):
     """Run an optimizer through a problem multiple times.
 
     Returns:
@@ -102,7 +102,7 @@ def benchmark(optimizer, max_iterations=100, runs=20):
     # The stochastic nature of metaheuristics make this necessary
     # for an accurate evaluation
     for _ in range(runs):
-        optimizer.optimize(max_iterations=max_iterations)
+        optimizer.optimize(problem, max_iterations=max_iterations)
 
         # Convert bool to number for mean and standard deviation calculations
         if optimizer.solution_found:
@@ -128,11 +128,14 @@ def benchmark(optimizer, max_iterations=100, runs=20):
     return stats
 
 
-def compare(optimizers, all_max_iterations=100, runs=20):
+def compare(optimizers, problems, all_max_iterations=100, runs=20):
     """Compare a set of optimizers.
 
     Args:
-        optimizers: list; A list of optimizers to compare.
+        optimizers: list/Optimizer; Either a list of optimizers to compare,
+            or a single optimizer to test on each problem.
+        problems: list/Problem; Either a problem instance or a list of problem instances,
+            one for each optimizer.
         all_max_iterations: list/int; Either the max iterations for all optimizers,
             or a list of max iterations, one for each optimizer.
         runs: int; How many times to run each optimizer (smoothness)
@@ -140,17 +143,29 @@ def compare(optimizers, all_max_iterations=100, runs=20):
     Returns:
         dict; mapping optimizer identifier to stats.
     """
+    if not (isinstance(optimizers, collections.Iterable) or
+            isinstance(problems, collections.Iterable)):
+        raise TypeError('optimizers or problems must be iterable')
+
+    # If optimizers is not a list, repeat into list for each problem
+    if not isinstance(optimizers, collections.Iterable):
+        optimizers = [copy.deepcopy(optimizers) for _ in range(len(problems))]
+
+    # If problems is not a list, repeat into list for each optimizer
+    if not isinstance(problems, collections.Iterable):
+        problems = [copy.deepcopy(problems) for _ in range(len(optimizers))]
+
     # If max_iterations is an integer, repeat it into a list
     if not isinstance(all_max_iterations, collections.Iterable):
         all_max_iterations = [all_max_iterations]*len(optimizers)
 
     stats = {}
     key_counts = {}
-    for optimizer, max_iterations in zip(optimizers, all_max_iterations):
+    for optimizer, problem, max_iterations in zip(optimizers, problems, all_max_iterations):
         # For nice human readable dictionaries, extract useful names from
         # optimizer
         class_name = optimizer.__class__.__name__
-        fitness_func_name = optimizer._problem._fitness_function.__name__
+        fitness_func_name = problem._fitness_function.__name__
         key_name = '{} {}'.format(class_name, fitness_func_name)
 
         # Keep track of how many optimizers of each class / fitness func
@@ -166,7 +181,7 @@ def compare(optimizers, all_max_iterations=100, runs=20):
         print key + ': ',
 
         # Finally, get the actual stats
-        stats[key] = benchmark(optimizer, max_iterations=max_iterations, runs=runs)
+        stats[key] = benchmark(optimizer, problem, max_iterations=max_iterations, runs=runs)
 
         print
 

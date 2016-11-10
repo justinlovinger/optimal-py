@@ -38,10 +38,10 @@ from optimal import optimize
 class CrossEntropy(optimize.StandardOptimizer):
     """Cross entropy optimization."""
 
-    def __init__(self, problem, solution_size,
+    def __init__(self, solution_size,
                  population_size=20,
                  pdfs=None, quantile=0.9):
-        super(CrossEntropy, self).__init__(problem, solution_size, population_size)
+        super(CrossEntropy, self).__init__(solution_size, population_size)
 
         # Cross entropy variables
         if pdfs:

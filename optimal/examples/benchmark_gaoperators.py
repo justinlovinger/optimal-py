@@ -54,29 +54,15 @@ PROBLEMS = [
 
 def benchmark_multi(optimizer):
     """Benchmark an optimizer configuration on multiple functions."""
-
-    # First, create optimizer for each function, for use in compare
-    optimizers = []
-    for problem in PROBLEMS:
-        # Set optimizer function
-        # we can easily do this since all functions require the same solution
-        # size
-        # NOTE: in future versions, a better method of changing the optimizer problem
-        # will be included (avoiding the need to access protected members)
-        optimizer._problem = problem
-
-        # Make a copy, or we'll only have one optimizer repeated in our list
-        optimizers.append(copy.deepcopy(optimizer))
-
     # Get our benchmark stats
-    all_stats = benchmark.compare(optimizers, runs=100)
+    all_stats = benchmark.compare(optimizer, PROBLEMS, runs=100)
     return benchmark.aggregate(all_stats)
 
 
 # Create the genetic algorithm configurations to compare
 # In reality, we would also want to optimize other hyperparameters
-ga_onepoint = GenAlg(None, 32, crossover_function=gaoperators.one_point_crossover)
-ga_uniform = GenAlg(None, 32, crossover_function=gaoperators.uniform_crossover)
+ga_onepoint = GenAlg(32, crossover_function=gaoperators.one_point_crossover)
+ga_uniform = GenAlg(32, crossover_function=gaoperators.uniform_crossover)
 
 # Run a benchmark for multiple problems, for robust testing
 onepoint_stats = benchmark_multi(ga_onepoint)

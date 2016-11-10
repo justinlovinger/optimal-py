@@ -37,12 +37,12 @@ simple_problem = Problem(simple_function)
 
 
 def test_optimize_solution_correct():
-    optimizer = GenAlg(simple_problem, 2)
-    assert optimizer.optimize() == [1, 1]
+    optimizer = GenAlg(2)
+    assert optimizer.optimize(simple_problem) == [1, 1]
 
 
 def test_get_hyperparameters():
-    optimizer = optimize.StandardOptimizer(simple_problem, 2)
+    optimizer = optimize.StandardOptimizer(2)
 
     hyperparameters = optimizer._get_hyperparameters()
     assert hyperparameters != None
@@ -50,7 +50,7 @@ def test_get_hyperparameters():
 
 
 def test_set_hyperparameters_wrong_parameter():
-    optimizer = optimize.StandardOptimizer(simple_problem, 2)
+    optimizer = optimize.StandardOptimizer(2)
 
     with pytest.raises(ValueError):
         optimizer._set_hyperparameters({'test': None})
@@ -63,11 +63,11 @@ def test_meta_optimize_parameter_locks():
     # Only optimize mutation chance
     parameter_locks=['_population_size', '_crossover_chance', '_selection_function', '_crossover_function']
 
-    my_genalg = GenAlg(simple_problem, 2)
+    my_genalg = GenAlg(2)
     original = copy.deepcopy(my_genalg)
 
     # Low smoothing for faster performance
-    my_genalg.optimize_hyperparameters(parameter_locks=parameter_locks, smoothing=1)
+    my_genalg.optimize_hyperparameters(simple_problem, parameter_locks=parameter_locks, smoothing=1)
 
     # Check that mutation chance changed
     assert my_genalg._mutation_chance != original._mutation_chance
