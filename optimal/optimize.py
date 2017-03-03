@@ -72,9 +72,13 @@ class Optimizer(object):
         self.logging = True
         self._logging_func = _print_fitnesses
 
-        # Set initial values that are used internally
-        self.__clear_fitness_dict = True
-        self.__fitness_dict = {}
+        # Set caching parameters
+        self.cache_encoded_solution = True
+        self.cache_decoded_solution = True
+        self.clear_cache = True
+        self.__encoded_cache = {}
+        self.__decoded_cache = {}
+        self._get_decoded_key = self._get_decoded_key_type
 
         # Bookkeeping
         self.iteration = 0
@@ -123,7 +127,7 @@ class Optimizer(object):
         Returns:
             list; The best solution, as it is encoded.
         """
-        if not isinstance(problem, Problem): # Allow None for "not yet set"
+        if not isinstance(problem, Problem):
             raise TypeError('problem must be an instance of Problem class')
 
         # Set first, incase optimizer uses _max_iterations in initilization
@@ -164,8 +168,13 @@ class Optimizer(object):
 
         # Always clear memory
         finally:
-            if self.__clear_fitness_dict:
-                self.__fitness_dict = {}  # Clear memory
+            if self.clear_cache:
+                # Clear caches from memory
+                self.__encoded_cache = {}
+                self.__decoded_cache = {}
+
+                # Reset decoded cache key
+                self._get_decoded_key = self._get_decoded_key_type
 
         return self.best_solution
 
@@ -192,10 +201,11 @@ class Optimizer(object):
 
         # Get fitness for each potential soluion in population
         for encoded_solution in population:
-            fitness_key = tuple(encoded_solution)
+            # First cache level, encoded cache
+            encoded_key = tuple(encoded_solution)
             try:
                 # Attempt to retrieve fitness from cache
-                fitness = self.__fitness_dict[fitness_key]
+                fitness = self.__encoded_cache[encoded_key]
 
                 # Will never be best solution, because we saw it already,
                 # so we don't need to decode.
@@ -205,18 +215,27 @@ class Optimizer(object):
                 # we simply consider the encoded_solution to be the decoded solution
                 solution = problem.decode_solution(encoded_solution)
 
-                # Get fitness from user defined fitness function,
-                # with any argument they provide for it
-                fitness_finished = problem.get_fitness(solution)
-
-                # If the user supplied fitness function includes the "finished" flag,
-                # unpack the results into the finished flag and the fitness
+                # Second cache level, decoded cache
+                decoded_key = self._get_decoded_key(solution)
                 try:
-                    fitness, finished = fitness_finished
-                except TypeError: # Not (fitness, finished) tuple
-                    fitness = fitness_finished
-                self.__fitness_dict[fitness_key] = fitness
-                self.fitness_runs += 1  # keep track of how many times fitness is evaluated
+                    fitness = self.__decoded_cache[decoded_key]
+
+                    self.__encoded_cache[encoded_key] = fitness
+                except KeyError: # Cache miss
+                    # Get fitness from user defined fitness function,
+                    # with any argument they provide for it
+                    fitness_finished = problem.get_fitness(solution)
+
+                    # If the user supplied fitness function includes the "finished" flag,
+                    # unpack the results into the finished flag and the fitness
+                    try:
+                        fitness, finished = fitness_finished
+                    except TypeError: # Not (fitness, finished) tuple
+                        fitness = fitness_finished
+                    self.__encoded_cache[encoded_key] = fitness
+                    if decoded_key is not None:
+                        self.__decoded_cache[decoded_key] = fitness
+                    self.fitness_runs += 1  # keep track of how many times fitness is evaluated
 
             fitnesses.append(fitness)
             solutions.append(solution)
@@ -224,6 +243,42 @@ class Optimizer(object):
                 break
 
         return fitnesses, solutions, finished
+
+    def _get_decoded_key_type(self, solution):
+        # Start by just trying to hash it
+        try:
+            {solution: None}
+            self._get_decoded_key = self._get_decoded_key_simple
+        except:
+            # Not hashable
+            # Try tuple
+            try:
+                tuple(solution)
+                self._get_decoded_key = self._get_decoded_key_tuple
+            except:
+                # Cannot convert to tuple
+                # Try str
+                try:
+                    str(solution)
+                    self._get_decoded_key = self._get_decoded_key_str
+                except:
+                    # Nothing works, give up
+                    self._get_decoded_key = self._get_decoded_key_none
+
+        # Done discovering, return key
+        return self._get_decoded_key(solution)
+
+    def _get_decoded_key_simple(self, solution):
+        return solution
+
+    def _get_decoded_key_tuple(self, solution):
+        return tuple(solution)
+
+    def _get_decoded_key_str(self, solution):
+        return str(solution)
+
+    def _get_decoded_key_none(self, solution):
+        return None
 
     def _set_hyperparameters(self, parameters):
         """Set internal optimization parameters."""
@@ -467,8 +522,8 @@ def _meta_fitness_func(parameters, _optimizer, _problems,
     # NOTE: master_fitness_dict will be modified inline, and therefore,
     # we do not need to take additional steps to update it
     if _master_fitness_dict != None:  # None means low memory mode
-        optimizer._Optimizer__clear_fitness_dict = False
-        optimizer._Optimizer__fitness_dict = _master_fitness_dict
+        optimizer.clear_cache = False
+        optimizer._Optimizer__encoded_cache = _master_fitness_dict
 
     # Because metaheuristics are stochastic, we run the optimizer multiple times,
     # to obtain an average of performance
