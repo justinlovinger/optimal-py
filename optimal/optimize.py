@@ -125,7 +125,7 @@ class Optimizer(object):
             max_iterations: The number of iterations to optimize before stopping.
 
         Returns:
-            list; The best solution, as it is encoded.
+            object; The best solution, after decoding.
         """
         if not isinstance(problem, Problem):
             raise TypeError('problem must be an instance of Problem class')
