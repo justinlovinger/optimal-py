@@ -45,6 +45,19 @@ def test_problem_copy():
     assert problem._fitness_args == ['a']
 
 
+def test_optimize_get_decoded_key():
+    # Hashable
+    optimizer = optimize.Optimizer()
+    optimizer._get_decoded_key('1') == '1'
+
+    # Tupleable
+    optimizer = optimize.Optimizer()
+    optimizer._get_decoded_key(['1']) == tuple(['1'])
+
+    # Stringable
+    optimizer = optimize.Optimizer()
+    optimizer._get_decoded_key([['1']]) == str([['1']])
+
 def test_optimize_solution_correct():
     optimizer = GenAlg(2)
     assert optimizer.optimize(SIMPLE_PROBLEM) == [1, 1]

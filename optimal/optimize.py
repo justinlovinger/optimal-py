@@ -278,13 +278,13 @@ class Optimizer(object):
             # Not hashable
             # Try tuple
             try:
-                tuple(solution)
+                {tuple(solution): None}
                 self._get_decoded_key = self._get_decoded_key_tuple
             except:
                 # Cannot convert to tuple
                 # Try str
                 try:
-                    str(solution)
+                    {str(solution): None}
                     self._get_decoded_key = self._get_decoded_key_str
                 except:
                     # Nothing works, give up
