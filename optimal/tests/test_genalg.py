@@ -25,6 +25,17 @@ import pytest
 
 from optimal import Problem, GenAlg, problems, optimize
 
+def very_simple_function(binary):
+    finished = binary[0]
+    return float(binary[0])+0.001, finished
+VERY_SIMPLE_PROBLEM = Problem(very_simple_function)
+
+def test_genalg_chromosome_size_eq_1():
+    """Regression test for chromosome_size == 1 edge case."""
+    optimizer = GenAlg(1)
+    optimizer.optimize(VERY_SIMPLE_PROBLEM)
+    assert optimizer.solution_found
+
 def test_genalg_sphere():
     optimizer = GenAlg(32)
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)

@@ -26,8 +26,8 @@
 Contains base implementation of genetic algorithms.
 Specific crossover, selection, etc. functions are implemented in gaoperators.py
 """
-
 import random
+import logging
 
 from optimal import gaoperators, optimize, common
 
@@ -52,6 +52,11 @@ class GenAlg(optimize.StandardOptimizer):
             crossover_function: A function that will cross two parents
         """
         super(GenAlg, self).__init__(chromosome_size, population_size)
+
+        if chromosome_size == 1 and crossover_chance > 0.0:
+            logging.warning('Crossover not supported with chromosome_size == 1. ' \
+                            'Crossover is disabled.')
+            crossover_chance = 0.0
 
         # Set genetic algorithm parameters
         self._mutation_chance = mutation_chance
