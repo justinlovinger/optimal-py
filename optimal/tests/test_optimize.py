@@ -32,13 +32,22 @@ from optimal import optimize, GenAlg, Problem
 def simple_function(binary):
     finished = binary[0] and binary[1]
     return float(binary[0])+float(binary[1])+0.001, finished
+SIMPLE_PROBLEM = Problem(simple_function)
 
-simple_problem = Problem(simple_function)
+def test_problem_copy():
+    problem = Problem(simple_function, fitness_args=['a'])
+    problem_copy = problem.copy()
+    assert problem_copy is not problem
+    assert problem_copy.__dict__ == problem.__dict__
+
+    problem_copy = problem.copy(fitness_args=['a', 'b'])
+    assert problem_copy._fitness_args == ['a', 'b']
+    assert problem._fitness_args == ['a']
 
 
 def test_optimize_solution_correct():
     optimizer = GenAlg(2)
-    assert optimizer.optimize(simple_problem) == [1, 1]
+    assert optimizer.optimize(SIMPLE_PROBLEM) == [1, 1]
 
 
 def test_get_hyperparameters():
@@ -61,13 +70,16 @@ def test_meta_optimize_parameter_locks():
     # assert that locked parameters did not change
 
     # Only optimize mutation chance
-    parameter_locks=['_population_size', '_crossover_chance', '_selection_function', '_crossover_function']
+    parameter_locks = [
+        '_population_size', '_crossover_chance',
+        '_selection_function', '_crossover_function'
+    ]
 
     my_genalg = GenAlg(2)
     original = copy.deepcopy(my_genalg)
 
     # Low smoothing for faster performance
-    my_genalg.optimize_hyperparameters(simple_problem, parameter_locks=parameter_locks, smoothing=1)
+    my_genalg.optimize_hyperparameters(SIMPLE_PROBLEM, parameter_locks=parameter_locks, smoothing=1)
 
     # Check that mutation chance changed
     assert my_genalg._mutation_chance != original._mutation_chance

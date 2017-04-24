@@ -48,6 +48,31 @@ class Problem(object):
         self._fitness_kwargs = fitness_kwargs
         self._decode_kwargs = decode_kwargs
 
+    def copy(self, fitness_function=None, decode_function=None,
+             fitness_args=None, decode_args=None,
+             fitness_kwargs=None, decode_kwargs=None):
+        """Return a copy of this problem.
+
+        Optionally replace this problems arguments with those passed in.
+        """
+        if fitness_function is None:
+            fitness_function = self._fitness_function
+        if decode_function is None:
+            decode_function = self._decode_function
+        if fitness_args is None:
+            fitness_args = self._fitness_args
+        if decode_args is None:
+            decode_args = self._decode_args
+        if fitness_kwargs is None:
+            fitness_kwargs = self._fitness_kwargs
+        if decode_kwargs is None:
+            decode_kwargs = self._decode_kwargs
+
+        return Problem(
+            fitness_function, decode_function=decode_function,
+            fitness_args=fitness_args, decode_args=decode_args,
+            fitness_kwargs=fitness_kwargs, decode_kwargs=decode_kwargs)
+
     def get_fitness(self, solution):
         """Return fitness for the given solution."""
         return self._fitness_function(solution, *self._fitness_args, **self._fitness_kwargs)
