@@ -235,6 +235,7 @@ class Optimizer(object):
                 # Will never be best solution, because we saw it already,
                 # so we don't need to decode.
                 solution = None
+
             except KeyError: # Cache miss
                 # Decode solution, if user does not provide decode function
                 # we simply consider the encoded_solution to be the decoded solution
@@ -245,7 +246,10 @@ class Optimizer(object):
                 try:
                     fitness = self.__decoded_cache[decoded_key]
 
-                    self.__encoded_cache[encoded_key] = fitness
+                    # Add to cache
+                    if self.cache_decoded_solution:
+                        self.__encoded_cache[encoded_key] = fitness
+                    
                 except KeyError: # Cache miss
                     # Get fitness from user defined fitness function,
                     # with any argument they provide for it
@@ -257,14 +261,20 @@ class Optimizer(object):
                         fitness, finished = fitness_finished
                     except TypeError: # Not (fitness, finished) tuple
                         fitness = fitness_finished
-                    self.__encoded_cache[encoded_key] = fitness
-                    if decoded_key is not None:
+
+                    # Add to caches
+                    if self.cache_encoded_solution:
+                        self.__encoded_cache[encoded_key] = fitness
+                    if self.cache_decoded_solution and decoded_key is not None:
                         self.__decoded_cache[decoded_key] = fitness
+
+                    # Bookkeeping
                     self.fitness_runs += 1  # keep track of how many times fitness is evaluated
 
+            # Fitness calculated, add to list
             fitnesses.append(fitness)
-            solutions.append(solution)
-            if finished:
+            solutions.append(solution) # Remember solution, in case it is the best
+            if finished: # Break early if optimization is finished
                 break
 
         return fitnesses, solutions, finished
