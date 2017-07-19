@@ -287,18 +287,25 @@ class Optimizer(object):
         except:
             # Not hashable
             # Try tuple
-            try:
-                {tuple(solution): None}
-                self._get_decoded_key = self._get_decoded_key_tuple
-            except:
-                # Cannot convert to tuple
-                # Try str
+
+            # Before trying tuple, check if dict
+            # tuple(dict) will return a tuple of the KEYS only
+            if isinstance(solution, dict):
+                self._get_decoded_key = self._get_decoded_key_dict
+            else:
+                # Not dict, try tuple
                 try:
-                    {str(solution): None}
-                    self._get_decoded_key = self._get_decoded_key_str
+                    {tuple(solution): None}
+                    self._get_decoded_key = self._get_decoded_key_tuple
                 except:
-                    # Nothing works, give up
-                    self._get_decoded_key = self._get_decoded_key_none
+                    # Cannot convert to tuple
+                    # Try str
+                    try:
+                        {str(solution): None}
+                        self._get_decoded_key = self._get_decoded_key_str
+                    except:
+                        # Nothing works, give up
+                        self._get_decoded_key = self._get_decoded_key_none
 
         # Done discovering, return key
         return self._get_decoded_key(solution)
@@ -311,6 +318,9 @@ class Optimizer(object):
 
     def _get_decoded_key_str(self, solution):
         return str(solution)
+
+    def _get_decoded_key_dict(self, solution):
+        return tuple(solution.items())
 
     def _get_decoded_key_none(self, solution):
         return None

@@ -44,11 +44,19 @@ def test_problem_copy():
     assert problem_copy._fitness_args == ['a', 'b']
     assert problem._fitness_args == ['a']
 
-
+###############################
+# Caching
+###############################
 def test_optimize_get_decoded_key():
     # Hashable
     optimizer = optimize.Optimizer()
     optimizer._get_decoded_key('1') == '1'
+
+    # Dict
+    # NOTE: This requires special treatment, otherwise,
+    # tuple(dict) will return a tuple of the KEYS only
+    optimizer = optimize.Optimizer()
+    optimizer._get_decoded_key({'a': '1'}) == tuple([('a', '1')])
 
     # Tupleable
     optimizer = optimize.Optimizer()
@@ -58,11 +66,17 @@ def test_optimize_get_decoded_key():
     optimizer = optimize.Optimizer()
     optimizer._get_decoded_key([['1']]) == str([['1']])
 
+####################################
+# Integration
+####################################
 def test_optimize_solution_correct():
     optimizer = GenAlg(2)
     assert optimizer.optimize(SIMPLE_PROBLEM) == [1, 1]
 
 
+####################################
+# Hyperparameters
+####################################
 def test_get_hyperparameters():
     optimizer = optimize.StandardOptimizer(2)
 
