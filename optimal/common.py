@@ -25,12 +25,12 @@
 
 import random
 
-def random_solution_binary(solution_size):
+def random_binary_solution(solution_size):
     """Make a list of random 0s and 1s."""
     return [random.randint(0, 1) for _ in range(solution_size)]
 
 
-def random_solution_real(solution_size, lower_bounds, upper_bounds):
+def random_real_solution(solution_size, lower_bounds, upper_bounds):
     """Make a list of random real numbers between lower and upper bounds."""
     return [random.uniform(lower_bounds[i], upper_bounds[i]) for i in range(solution_size)]
 

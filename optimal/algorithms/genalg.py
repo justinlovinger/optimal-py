@@ -78,7 +78,7 @@ class GenAlg(optimize.StandardOptimizer):
                                                                    gaoperators.uniform_crossover]}
 
     def initial_population(self):
-        return common.make_population(self._population_size, common.random_solution_binary,
+        return common.make_population(self._population_size, common.random_binary_solution,
                                       self._solution_size)
 
     def next_population(self, population, fitnesses):

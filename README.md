@@ -73,6 +73,10 @@ Important notes:
 For further usage details, see comprehensive doc strings.
 
 # Major Changes
+## 07/26/2017
+Renamed common.random\_solution\_binary to common.random\_binary\_solution,
+and common.random\_solution\_real to common.random\_real\_solution
+
 ## 11/10/2016
 problem now an argument of Optimizer.optimize, instead of Optimizer.\_\_init\_\_.
 
