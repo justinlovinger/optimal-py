@@ -119,6 +119,12 @@ def roulette_selection(population, fitnesses):
 
 def _fitnesses_to_probabilities(fitnesses):
     """Return a list of probabilities proportional to fitnesses."""
+    # Do not allow negative fitness values
+    min_fitness = min(fitnesses)
+    if min_fitness < 0.0:
+        # Make smallest fitness value 0
+        fitnesses = map(lambda f: f-min_fitness, fitnesses)
+
     fitness_sum = sum(fitnesses)
 
     # Generate probabilities

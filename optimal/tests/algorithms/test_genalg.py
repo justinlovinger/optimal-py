@@ -45,7 +45,6 @@ def test_genalg_chromosome_size_eq_1():
 def test_genalg_sphere_defaults():
     _check_optimizer(GenAlg(32))
 
-
 def test_genalg_sphere_tournament_no_diversity():
     _check_optimizer(GenAlg(
         32, selection_function=functools.partial(gaoperators.tournament_selection, diversity_factor=0.0)))
@@ -53,6 +52,12 @@ def test_genalg_sphere_tournament_no_diversity():
 def test_genalg_sphere_tournament_with_diversity():
     _check_optimizer(GenAlg(
         32, selection_function=functools.partial(gaoperators.tournament_selection, diversity_factor=1.0)))
+
+def test_genalg_sphere_roulette_selection():
+    _check_optimizer(GenAlg(32, selection_function=gaoperators.roulette_selection))
+
+def test_genalg_sphere_stochastic_selection():
+    _check_optimizer(GenAlg(32, selection_function=gaoperators.stochastic_selection))
 
 def _check_optimizer(optimizer):
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)

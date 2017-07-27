@@ -49,7 +49,7 @@ def sphere_function(solution):
     output = x1**2 + x2**2
 
     finished = output <= 0.01
-    return 1.0 / output, finished
+    return 1.0 - output, finished
 
 sphere_binary = Problem(sphere_function, functools.partial(decode_binary, min_=-5.0, max_=5.0))
 sphere_real = Problem(sphere_function)
@@ -73,9 +73,7 @@ def ackley_function(solution):
 
     # Because this function is trying to minimize the output,
     # a smaller output has a greater fitness
-    fitness = 1 / output
-
-    return fitness, finished
+    return 1.0 - output, finished
 
 ackley_binary = Problem(ackley_function, functools.partial(decode_binary, min_=-5.0, max_=5.0))
 ackley_real = Problem(ackley_function)
@@ -91,7 +89,7 @@ def levis_function(solution):
         (1 + math.sin(2 * math.pi * x2)**2)
     finished = output <= 0.02
 
-    return 1 / output, finished
+    return 1.0 - output, finished
 
 levis_binary = Problem(levis_function, functools.partial(decode_binary, min_=-5.0, max_=5.0))
 levis_real = Problem(levis_function)
@@ -106,7 +104,7 @@ def eggholder_function(solution):
         - x * math.sin(math.sqrt(math.fabs(x - (y + 47))))
     finished = output < -934.0  # solution == -959.6407
 
-    return 1 / (output + 959.6407), finished
+    return 1.0 - (output + 959.6407), finished
 
 eggholder_binary = Problem(
     eggholder_function, functools.partial(decode_binary, min_=256.0, max_=512.0))
@@ -122,7 +120,7 @@ def table_function(solution):
                         math.exp(math.fabs(1 - (math.sqrt(x * x + y * y)) / math.pi)))
     finished = output < -19.200  # solution == -19.2085
 
-    return 1 / (output + 19.2085), finished
+    return 1.0 - (output + 19.2085), finished
 
 
 table_binary = Problem(table_function, functools.partial(decode_binary, min_=-10.0, max_=10.0))
@@ -138,7 +136,7 @@ def shaffer_function(solution):
         (1 + 0.001 * (x * x + y * y))**2
     finished = output < 0.01
 
-    return 1 / output, finished
+    return 1.0 - output, finished
 
 
 shaffer_binary = Problem(shaffer_function, functools.partial(decode_binary, min_=-25.0, max_=25.0))
@@ -154,7 +152,7 @@ def cross_function(solution):
         math.fabs(100 - math.sqrt(x * x + y * y) / math.pi))) + 1)**0.1
     finished = output < -2.062  # solution == -2.06261
 
-    return 1 / (output + 2.06261), finished
+    return 1.0 - (output + 2.06261), finished
 
 
 cross_binary = Problem(cross_function, functools.partial(decode_binary, min_=-5.0, max_=5.0))
