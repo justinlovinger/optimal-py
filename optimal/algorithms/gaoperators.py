@@ -27,15 +27,53 @@
 import random
 
 
-def tournament_selection(population, fitnesses, num_competitors=2):
-    """Create a list of parents with tournament selection."""
+#################################
+# Selection
+#################################
+# TODO: Support diversity factor for all selection algorithms
+
+def tournament_selection(population, fitnesses, num_competitors=2, diversity_factor=1.0):
+    """Create a list of parents with tournament selection.
+
+    Args:
+        population: A list of solutions.
+        fitnesses: A list of fitness values corresponding to solutions in population.
+        num_competitors: Number of solutions to compare every round.
+            Best solution among competitors is selected.
+        diversity_factor: Weight of diversity metric, added to fitness of each solution each round.
+    """
     fitness_pop = zip(fitnesses, population) # Zip for easy fitness comparison
 
-    # Get num_competitors random chromosomes, then add best to result,
-    # by taking max fitness and getting chromosome from tuple.
-    # Repeat until full.
-    return [max(random.sample(fitness_pop, num_competitors))[1]
-            for _ in range(len(population))]
+    # Optimization if diversity factor is disabled
+    if diversity_factor <= 0.0:
+        # Get num_competitors random chromosomes, then add best to result,
+        # by taking max fitness and getting chromosome from tuple.
+        # Repeat until full.
+        return [max(random.sample(fitness_pop, num_competitors))[1]
+                for _ in range(len(population))]
+    else:
+        # Same as without diversity factor, but diversity_factor * diversity_metric
+        # is added to fitness of each solution, for purposes of competition
+        # diversity_metric is calculated between the given fitness,
+        # and the list of all currently selected solutions.
+        selected_solutions = []
+        for _ in range(len(population)):
+            # Add competitor (append) with highest adjusted fitness (max), to list of selected
+            selected_solutions.append(max(
+                # Add diversity value to each selected competitor
+                map(
+                    lambda fitness_solution: (
+                        # Fitness + diversity_factor*diversity_value
+                        fitness_solution[0] + diversity_factor*_diversity_metric(
+                            fitness_solution[1], selected_solutions),
+                        # Solution
+                        fitness_solution[1]
+                    ),
+                    # Selected competitors
+                    random.sample(fitness_pop, num_competitors)
+                )
+            )[1]) # Split solution from fitness
+        return selected_solutions
 
 def stochastic_selection(population, fitnesses):
     """Create a list of parents with stochastic universal sampling."""
@@ -80,7 +118,7 @@ def roulette_selection(population, fitnesses):
 
 
 def _fitnesses_to_probabilities(fitnesses):
-    """Return a list of probabilites proportional to fitnesses."""
+    """Return a list of probabilities proportional to fitnesses."""
     fitness_sum = sum(fitnesses)
 
     # Generate probabilities
@@ -100,6 +138,33 @@ def _fitnesses_to_probabilities(fitnesses):
     return probabilities
 
 
+def _diversity_metric(solution, population):
+    """Return diversity value for solution compared to given population.
+
+    Metric is sum of distance between solution and each solution in population,
+    normalized to [0.0, 1.0].
+    """
+    # Edge case for empty population
+    # If there are no other solutions, the given solution has maximum diversity
+    if population == []:
+        return 1.0
+
+    return (
+        sum([_manhattan_distance(solution, other) for other in population])
+        # Normalize (assuming each value in solution is in range [0.0, 1.0])
+        # NOTE: len(solution) is maximum manhattan distance
+        / (len(population) * len(solution))
+    )
+
+def _manhattan_distance(vec_a, vec_b):
+    """Return manhattan distance between two lists of numbers."""
+    if len(vec_a) != len(vec_b):
+        raise ValueError('len(vec_a) must equal len(vec_b)')
+    return sum(map(lambda a, b: abs(a-b), vec_a, vec_b))
+
+##############################
+# Crossover
+##############################
 def one_point_crossover(parents):
     """Perform one point crossover on two parent chromosomes.
 
@@ -139,6 +204,9 @@ def uniform_crossover(parents):
     return children
 
 
+#############################
+# Mutation
+#############################
 def random_flip_mutate(population, mutation_chance):
     """Mutate every chromosome in a population, list is modified in place.
 

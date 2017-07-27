@@ -21,9 +21,11 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 ###############################################################################
+import functools
+
 import pytest
 
-from optimal import Problem, GenAlg, problems, optimize
+from optimal import Problem, GenAlg, problems, optimize, gaoperators
 
 def very_simple_function(binary):
     finished = binary[0]
@@ -36,12 +38,25 @@ def test_genalg_chromosome_size_eq_1():
     optimizer.optimize(VERY_SIMPLE_PROBLEM)
     assert optimizer.solution_found
 
-def test_genalg_sphere():
-    optimizer = GenAlg(32)
+#############################
+# Optimize
+#############################
+def test_genalg_sphere_defaults():
+    _check_optimizer(GenAlg(32))
+
+
+def test_genalg_sphere_tournament_no_diversity():
+    _check_optimizer(GenAlg(
+        32, selection_function=functools.partial(gaoperators.tournament_selection, diversity_factor=0.0)))
+
+def test_genalg_sphere_tournament_with_diversity():
+    _check_optimizer(GenAlg(
+        32, selection_function=functools.partial(gaoperators.tournament_selection, diversity_factor=1.0)))
+
+def _check_optimizer(optimizer):
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
     optimizer.optimize(problems.sphere_binary)
     assert optimizer.solution_found
-
 
 @pytest.mark.slowtest()
 def test_genalg_problems():
@@ -55,6 +70,9 @@ def test_genalg_problems():
     # TODO: test other functions
 
 
+##################################
+# Metaoptimize
+##################################
 @pytest.mark.slowtest()
 def test_metaoptimize_genalg():
     optimizer = GenAlg(32)
