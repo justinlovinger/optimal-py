@@ -515,7 +515,7 @@ def _make_hyperparameter_decode_func(locked_values, meta_parameters):
     def decode(solution):
         """Convert solution into dict of hyperparameters."""
         # Start with out stationary (locked) paramaters
-        hyperparameters = locked_values
+        hyperparameters = copy.deepcopy(locked_values)
 
         # Obtain moving hyperparameters from binary solution
         index = 0
