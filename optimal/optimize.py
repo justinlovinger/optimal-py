@@ -156,7 +156,7 @@ class Optimizer(object):
         if not isinstance(problem, Problem):
             raise TypeError('problem must be an instance of Problem class')
 
-        # Set first, incase optimizer uses _max_iterations in initilization
+        # Set first, incase optimizer uses _max_iterations in initialization
         self.__max_iterations = max_iterations
 
         # Initialize algorithm

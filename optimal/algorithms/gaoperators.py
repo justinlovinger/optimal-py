@@ -32,7 +32,7 @@ import random
 #################################
 # TODO: Support diversity factor for all selection algorithms
 
-def tournament_selection(population, fitnesses, num_competitors=2, diversity_factor=1.0):
+def tournament_selection(population, fitnesses, num_competitors=2, diversity_factor=0.0):
     """Create a list of parents with tournament selection.
 
     Args:
@@ -42,16 +42,21 @@ def tournament_selection(population, fitnesses, num_competitors=2, diversity_fac
             Best solution among competitors is selected.
         diversity_factor: Weight of diversity metric, added to fitness of each solution each round.
     """
-    fitness_pop = zip(fitnesses, population) # Zip for easy fitness comparison
-
     # Optimization if diversity factor is disabled
     if diversity_factor <= 0.0:
+        fitness_pop = zip(fitnesses, population) # Zip for easy fitness comparison
+
         # Get num_competitors random chromosomes, then add best to result,
         # by taking max fitness and getting chromosome from tuple.
         # Repeat until full.
         return [max(random.sample(fitness_pop, num_competitors))[1]
                 for _ in range(len(population))]
     else:
+        # Scale fitnesses, for consistent multi-objective combination
+        # (we want all objective values to have similar scaling)
+        fitnesses = _rescale(fitnesses)
+        fitness_pop = zip(fitnesses, population) # Zip for easy fitness comparison
+
         # Same as without diversity factor, but diversity_factor * diversity_metric
         # is added to fitness of each solution, for purposes of competition
         # diversity_metric is calculated between the given fitness,
@@ -73,6 +78,22 @@ def tournament_selection(population, fitnesses, num_competitors=2, diversity_fac
                     random.sample(fitness_pop, num_competitors)
                 )
             )[1]) # Split solution from fitness
+
+            # Ideally, we want to scale diversity values, as we do for fitness,
+            # but this requires calculating diversity value for all solutions
+            # every iteration, which is very expensive
+
+            # This is included below and commented:
+
+            # diversities = [_diversity_metric(solution, selected_solutions)
+            #                for solution in population]
+            # diversities = _rescale(diversities)
+
+            # moo_pop = [(fp[0]+diversity_factor*diversity, fp[1])
+            #            for fp, diversity in zip(fitness_pop, diversities)]
+
+            # selected_solutions.append(max(random.sample(moo_pop, num_competitors))[1])
+
         return selected_solutions
 
 def stochastic_selection(population, fitnesses):
@@ -116,6 +137,48 @@ def roulette_selection(population, fitnesses):
 
     return intermediate_population
 
+def _rescale(vector):
+    """Scale values in vector to the range [0, 1].
+
+    Args:
+        vector: A list of real values.
+    """
+    # Subtract min, making smallest value 0
+    min_val = min(vector)
+    vector = [v-min_val for v in vector]
+
+    # Divide by max, making largest value 1
+    max_val = float(max(vector))
+    try:
+        return [v/max_val for v in vector]
+    except ZeroDivisionError: # All values are the same
+        return [1.0]*len(vector)
+
+
+def _diversity_metric(solution, population):
+    """Return diversity value for solution compared to given population.
+
+    Metric is sum of distance between solution and each solution in population,
+    normalized to [0.0, 1.0].
+    """
+    # Edge case for empty population
+    # If there are no other solutions, the given solution has maximum diversity
+    if population == []:
+        return 1.0
+
+    return (
+        sum([_manhattan_distance(solution, other) for other in population])
+        # Normalize (assuming each value in solution is in range [0.0, 1.0])
+        # NOTE: len(solution) is maximum manhattan distance
+        / (len(population) * len(solution))
+    )
+
+def _manhattan_distance(vec_a, vec_b):
+    """Return manhattan distance between two lists of numbers."""
+    if len(vec_a) != len(vec_b):
+        raise ValueError('len(vec_a) must equal len(vec_b)')
+    return sum(map(lambda a, b: abs(a-b), vec_a, vec_b))
+
 
 def _fitnesses_to_probabilities(fitnesses):
     """Return a list of probabilities proportional to fitnesses."""
@@ -142,31 +205,6 @@ def _fitnesses_to_probabilities(fitnesses):
     probabilities[-1] += 0.0001  # to compensate for rounding errors
 
     return probabilities
-
-
-def _diversity_metric(solution, population):
-    """Return diversity value for solution compared to given population.
-
-    Metric is sum of distance between solution and each solution in population,
-    normalized to [0.0, 1.0].
-    """
-    # Edge case for empty population
-    # If there are no other solutions, the given solution has maximum diversity
-    if population == []:
-        return 1.0
-
-    return (
-        sum([_manhattan_distance(solution, other) for other in population])
-        # Normalize (assuming each value in solution is in range [0.0, 1.0])
-        # NOTE: len(solution) is maximum manhattan distance
-        / (len(population) * len(solution))
-    )
-
-def _manhattan_distance(vec_a, vec_b):
-    """Return manhattan distance between two lists of numbers."""
-    if len(vec_a) != len(vec_b):
-        raise ValueError('len(vec_a) must equal len(vec_b)')
-    return sum(map(lambda a, b: abs(a-b), vec_a, vec_b))
 
 ##############################
 # Crossover
