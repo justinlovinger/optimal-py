@@ -25,6 +25,7 @@
 """Genetic Algorithm operators for mutation, crossover, and selection."""
 
 import random
+import operator
 
 
 #################################
@@ -32,7 +33,7 @@ import random
 #################################
 # TODO: Support diversity factor for all selection algorithms
 
-def tournament_selection(population, fitnesses, num_competitors=2, diversity_factor=0.0):
+def tournament_selection(population, fitnesses, num_competitors=2, diversity_weight=0.0):
     """Create a list of parents with tournament selection.
 
     Args:
@@ -40,10 +41,13 @@ def tournament_selection(population, fitnesses, num_competitors=2, diversity_fac
         fitnesses: A list of fitness values corresponding to solutions in population.
         num_competitors: Number of solutions to compare every round.
             Best solution among competitors is selected.
-        diversity_factor: Weight of diversity metric, added to fitness of each solution each round.
+        diversity_weight: Weight of diversity metric.
+            Determines how frequently diversity is used to select tournament winners.
+            Note that fitness is given a weight of 1.0.
+            diversity_weight == 1.0 gives equal weight to diversity and fitness.
     """
     # Optimization if diversity factor is disabled
-    if diversity_factor <= 0.0:
+    if diversity_weight <= 0.0:
         fitness_pop = zip(fitnesses, population) # Zip for easy fitness comparison
 
         # Get num_competitors random chromosomes, then add best to result,
@@ -52,49 +56,38 @@ def tournament_selection(population, fitnesses, num_competitors=2, diversity_fac
         return [max(random.sample(fitness_pop, num_competitors))[1]
                 for _ in range(len(population))]
     else:
-        # Scale fitnesses, for consistent multi-objective combination
-        # (we want all objective values to have similar scaling)
-        fitnesses = _rescale(fitnesses)
-        fitness_pop = zip(fitnesses, population) # Zip for easy fitness comparison
+        indices = range(len(population))
 
-        # Same as without diversity factor, but diversity_factor * diversity_metric
-        # is added to fitness of each solution, for purposes of competition
-        # diversity_metric is calculated between the given fitness,
+        # Select tournament winners by either max fitness or diversity.
+        # The metric to check is randomly selected, weighted by diversity_weight.
+        # diversity_metric is calculated between the given solution,
         # and the list of all currently selected solutions.
         selected_solutions = []
-        for _ in range(len(population)):
-            # Add competitor (append) with highest adjusted fitness (max), to list of selected
-            selected_solutions.append(max(
-                # Add diversity value to each selected competitor
-                map(
-                    lambda fitness_solution: (
-                        # Fitness + diversity_factor*diversity_value
-                        fitness_solution[0] + diversity_factor*_diversity_metric(
-                            fitness_solution[1], selected_solutions),
-                        # Solution
-                        fitness_solution[1]
-                    ),
-                    # Selected competitors
-                    random.sample(fitness_pop, num_competitors)
-                )
-            )[1]) # Split solution from fitness
+        for _ in range(len(population)): # Select as many solutions are there are in population
+            competitor_indices = random.sample(indices, num_competitors)
 
-            # Ideally, we want to scale diversity values, as we do for fitness,
-            # but this requires calculating diversity value for all solutions
-            # every iteration, which is very expensive
-
-            # This is included below and commented:
-
-            # diversities = [_diversity_metric(solution, selected_solutions)
-            #                for solution in population]
-            # diversities = _rescale(diversities)
-
-            # moo_pop = [(fp[0]+diversity_factor*diversity, fp[1])
-            #            for fp, diversity in zip(fitness_pop, diversities)]
-
-            # selected_solutions.append(max(random.sample(moo_pop, num_competitors))[1])
+            # Select by either fitness or diversity,
+            # Selected by weighted random selection
+            # NOTE: We assume fitness has a weight of 1.0
+            if random.uniform(0.0, 1.0) < (1.0 / (1.0 + diversity_weight)):
+                # Fitness
+                selected_solutions.append(
+                    max(
+                        zip([fitnesses[i] for i in competitor_indices],
+                            [population[i] for i in competitor_indices]))[-1])
+            else:
+                # Diversity
+                # Break ties by fitness
+                selected_solutions.append(
+                    max(
+                        zip([
+                            _diversity_metric(population[i], selected_solutions
+                                              ) for i in competitor_indices
+                        ], [fitnesses[i] for i in competitor_indices],
+                            [population[i] for i in competitor_indices]))[-1])
 
         return selected_solutions
+
 
 def stochastic_selection(population, fitnesses):
     """Create a list of parents with stochastic universal sampling."""

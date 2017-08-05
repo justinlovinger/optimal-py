@@ -47,11 +47,11 @@ def test_genalg_sphere_defaults():
 
 def test_genalg_sphere_tournament_no_diversity():
     _check_optimizer(GenAlg(
-        32, selection_function=functools.partial(gaoperators.tournament_selection, diversity_factor=0.0)))
+        32, selection_function=functools.partial(gaoperators.tournament_selection, diversity_weight=0.0)))
 
 def test_genalg_sphere_tournament_with_diversity():
     _check_optimizer(GenAlg(
-        32, selection_function=functools.partial(gaoperators.tournament_selection, diversity_factor=1.0)))
+        32, selection_function=functools.partial(gaoperators.tournament_selection, diversity_weight=1.0)))
 
 def test_genalg_sphere_roulette_selection():
     _check_optimizer(GenAlg(32, selection_function=gaoperators.roulette_selection))
