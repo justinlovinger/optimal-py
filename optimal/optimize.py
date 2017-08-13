@@ -454,7 +454,7 @@ def _print_fitnesses(iteration, fitnesses, best_solution, frequency=1):
 
 
 def _parse_parameter_locks(optimizer, meta_parameters, parameter_locks):
-    """Syncronize meta_parameters and locked_values.
+    """Synchronize meta_parameters and locked_values.
 
     The union of these two sets will have all necessary parameters.
     locked_values will have the parameters specified in parameter_locks.
@@ -487,7 +487,8 @@ def _get_hyperparameter_solution_size(meta_parameters):
             binary_size = helpers.binary_size(num_values)
         elif parameters['type'] == 'int':
             # Use enough bits to cover range from min to max
-            int_range = parameters['max'] - parameters['min']
+            # + 1 to include max in range
+            int_range = parameters['max'] - parameters['min'] + 1
             binary_size = helpers.binary_size(int_range)
         elif parameters['type'] == 'float':
             # Use enough bits to provide fine steps between min and max
