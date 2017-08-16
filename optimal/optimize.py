@@ -167,7 +167,7 @@ class Optimizer(object):
         try:
             # Begin optimization loop
             for self.iteration in range(1, self._max_iterations + 1):
-                fitnesses, solutions, finished = self._get_fitnesses(problem, population)
+                solutions, fitnesses, finished = self._get_fitnesses(problem, population)
 
                 # If the best fitness from this iteration is better than
                 # the global best
@@ -221,64 +221,94 @@ class Optimizer(object):
 
     def _get_fitnesses(self, problem, population):
         """Get the fitness for every solution in a population."""
-        fitnesses = []
-        solutions = []
+        solutions = [None] * len(population)
+        fitnesses = [None] * len(population)
         finished = False
 
-        # Get fitness for each potential soluion in population
-        for encoded_solution in population:
-            # First cache level, encoded cache
-            encoded_key = tuple(encoded_solution)
-            try:
-                # Attempt to retrieve fitness from cache
-                fitness = self.__encoded_cache[encoded_key]
-
-                # Will never be best solution, because we saw it already,
-                # so we don't need to decode.
-                solution = None
-
-            except KeyError: # Cache miss
-                # Decode solution, if user does not provide decode function
-                # we simply consider the encoded_solution to be the decoded solution
-                solution = problem.decode_solution(encoded_solution)
-
-                # Second cache level, decoded cache
-                decoded_key = self._get_decoded_key(solution)
+        #############################
+        # Decoding
+        #############################
+        if self.cache_encoded_solution:
+            # Get all fitnesses from encoded_solution cache
+            to_decode_indices = []
+            encoded_keys = map(tuple, population)
+            for i, encoded_key in enumerate(encoded_keys):
                 try:
-                    fitness = self.__decoded_cache[decoded_key]
+                    fitnesses[i] = self.__encoded_cache[encoded_key]
+                    # Note that this fitness will never be better than the current best
+                    # because we have already evaluted it,
+                    # Therefore, we do not need to worry about decoding the solution
+                except KeyError:  # Cache miss
+                    to_decode_indices.append(i)
+        else:
+            to_decode_indices = range(len(population))
 
-                    # Add to cache
-                    if self.cache_decoded_solution:
-                        self.__encoded_cache[encoded_key] = fitness
-                    
-                except KeyError: # Cache miss
-                    # Get fitness from user defined fitness function,
-                    # with any argument they provide for it
-                    fitness_finished = problem.get_fitness(solution)
+        # Decode solutions
+        # TODO: Remove duplicates first (use encoded_keys)
+        # TODO: Parallel map
+        decoded_solutions = map(problem.decode_solution,
+                                [population[i] for i in to_decode_indices])
+        for i, decoded_solution in zip(to_decode_indices, decoded_solutions):
+            solutions[i] = decoded_solution
 
-                    # If the user supplied fitness function includes the "finished" flag,
-                    # unpack the results into the finished flag and the fitness
-                    try:
-                        fitness, finished = fitness_finished
-                    except TypeError: # Not (fitness, finished) tuple
-                        fitness = fitness_finished
 
-                    # Add to caches
-                    if self.cache_encoded_solution:
-                        self.__encoded_cache[encoded_key] = fitness
-                    if self.cache_decoded_solution and decoded_key is not None:
-                        self.__decoded_cache[decoded_key] = fitness
+        #############################
+        # Evaluating
+        #############################
+        if self.cache_decoded_solution:
+            # Get all fitnesses from decoded_solution cache
+            to_eval_indices = []
+            decoded_keys = map(self._get_decoded_key, decoded_solutions)
+            for i, decoded_key in zip(to_decode_indices, decoded_keys):
+                try:
+                    fitnesses[i] = self.__decoded_cache[decoded_key]
+                except KeyError:  # Cache miss
+                    to_eval_indices.append(i)
+        else:
+            to_eval_indices = to_decode_indices[:]
 
-                    # Bookkeeping
-                    self.fitness_runs += 1  # keep track of how many times fitness is evaluated
+        # Evaluate solutions
+        # TODO: Remove duplicates first (use decoded_keys to find duplicates, don't if decoded_key is None)
+        # TODO: Parallel map
+        evaled_fitnesses = map(problem.get_fitness,
+                               [solutions[i] for i in to_eval_indices])
+        for i, fitness_finished in zip(to_eval_indices, evaled_fitnesses):
+            # Unpack fitness_finished tuple
+            try:
+                fitness, maybe_finished = fitness_finished
+                if maybe_finished:
+                    finished = True
+            except TypeError:  # Not (fitness, finished) tuple
+                fitness = fitness_finished
 
-            # Fitness calculated, add to list
-            fitnesses.append(fitness)
-            solutions.append(solution) # Remember solution, in case it is the best
-            if finished: # Break early if optimization is finished
-                break
+            fitnesses[i] = fitness
 
-        return fitnesses, solutions, finished
+
+        #############################
+        # Finishing
+        #############################
+        # Bookkeeping
+        # keep track of how many times fitness is evaluated
+        self.fitness_runs += len(evaled_fitnesses)
+
+        # Add evaluated fitnesses to caches (both of them)
+        if self.cache_encoded_solution:
+            for i in to_decode_indices:  # Encoded cache misses
+                self.__encoded_cache[encoded_keys[i]] = fitnesses[i]
+        if self.cache_decoded_solution:
+            # This mapping is necessary to easily find decoded key corresponding to pop index
+            # Because decoded keys corespond to to_decode_indices not population indices
+            ind_key_map = [None] * len(population)
+            for map_i, pop_i in enumerate(to_decode_indices):
+                ind_key_map[pop_i] = map_i
+            # Add to decoded cache
+            for i in to_eval_indices:  # Decoded cache misses
+                decoded_key = decoded_keys[ind_key_map[i]]
+                if decoded_key is not None:
+                    self.__decoded_cache[decoded_key] = fitnesses[i]
+
+        # Return
+        return solutions, fitnesses, finished
 
     def _get_decoded_key_type(self, solution):
         # Start by just trying to hash it

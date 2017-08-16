@@ -29,8 +29,7 @@ import pytest
 from optimal import Problem, GenAlg, problems, optimize, gaoperators
 
 def very_simple_function(binary):
-    finished = binary[0]
-    return float(binary[0])+0.001, finished
+    return float(binary[0])+0.001, binary[0] == True
 VERY_SIMPLE_PROBLEM = Problem(very_simple_function)
 
 def test_genalg_chromosome_size_eq_1():
@@ -54,10 +53,12 @@ def test_genalg_sphere_tournament_with_diversity():
         32, selection_function=functools.partial(gaoperators.tournament_selection, diversity_weight=1.0)))
 
 def test_genalg_sphere_roulette_selection():
-    _check_optimizer(GenAlg(32, selection_function=gaoperators.roulette_selection))
+    # Needs higher population size to consistently succeed
+    _check_optimizer(GenAlg(32, population_size=40, selection_function=gaoperators.roulette_selection))
 
 def test_genalg_sphere_stochastic_selection():
-    _check_optimizer(GenAlg(32, selection_function=gaoperators.stochastic_selection))
+    # Needs higher population size to consistently succeed
+    _check_optimizer(GenAlg(32, population_size=40, selection_function=gaoperators.stochastic_selection))
 
 def _check_optimizer(optimizer):
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
