@@ -26,8 +26,18 @@
 import copy
 import operator
 import collections
+import functools
+try:
+    import pathos
+except ImportError:
+    pass
 
 from optimal import helpers
+
+
+def _identity(x):
+    """Return x."""
+    return x
 
 
 class Problem(object):
@@ -39,7 +49,7 @@ class Problem(object):
 
     def __init__(self,
                  fitness_function,
-                 decode_function=lambda x: x,
+                 decode_function=_identity,
                  fitness_args=[],
                  decode_args=[],
                  fitness_kwargs={},
@@ -156,18 +166,31 @@ class Optimizer(object):
         """
         raise NotImplementedError("new_population is not implemented.")
 
-    def optimize(self, problem, max_iterations=100):
+    def optimize(self, problem, max_iterations=100, n_processes=0):
         """Find the optimal inputs for a given fitness function.
 
         Args:
             problem: An instance of Problem. The problem to solve.
             max_iterations: The number of iterations to optimize before stopping.
+            n_processes: int; Number of processes to use for multiprocessing.
+                If <= 0, do not use multiprocessing.
 
         Returns:
             object; The best solution, after decoding.
         """
         if not isinstance(problem, Problem):
             raise TypeError('problem must be an instance of Problem class')
+
+        # Prepare pool for multiprocessing
+        if n_processes > 0:
+            try:
+                pool = pathos.multiprocessing.Pool(processes=n_processes)
+            except NameError:
+                raise ImportError(
+                    'pathos library is not available. Install with "pip install pathos".'
+                )
+        else:
+            pool = None
 
         # Set first, incase optimizer uses _max_iterations in initialization
         self.__max_iterations = max_iterations
@@ -180,8 +203,9 @@ class Optimizer(object):
         try:
             # Begin optimization loop
             for self.iteration in range(1, self._max_iterations + 1):
+                # Evaluate potential solutions
                 solutions, fitnesses, finished = self._get_fitnesses(
-                    problem, population)
+                    problem, population, pool=pool)
 
                 # If the best fitness from this iteration is better than
                 # the global best
@@ -207,8 +231,8 @@ class Optimizer(object):
             self.best_solution = best_solution['solution']
             self.best_fitness = best_solution['fitness']
 
-        # Always clear memory
         finally:
+            # Clear caches
             if self.clear_cache:
                 # Clear caches from memory
                 self.__encoded_cache = {}
@@ -216,6 +240,14 @@ class Optimizer(object):
 
                 # Reset decoded cache key
                 self._get_decoded_key = self._get_decoded_key_type
+
+            # Clean up multiprocesses
+            try:
+                pool.terminate()  # Kill outstanding work
+                pool.close()  # Close the child processes
+            except AttributeError:
+                # No pool
+                assert pool is None
 
         return self.best_solution
 
@@ -234,8 +266,15 @@ class Optimizer(object):
         self.best_fitness = None
         self.solution_found = False
 
-    def _get_fitnesses(self, problem, population):
-        """Get the fitness for every solution in a population."""
+    def _get_fitnesses(self, problem, population, pool=None):
+        """Get the fitness for every solution in a population.
+
+        Args:
+            problem: Problem; The problem that defines fitness.
+            population: list; List of potential solutions.
+            pool: None/multiprocessing.Pool; Pool of processes for parallel
+                decoding and evaluation.
+        """
         solutions = [None] * len(population)
         fitnesses = [None] * len(population)
         finished = False
@@ -260,9 +299,18 @@ class Optimizer(object):
 
         # Decode solutions
         # TODO: Remove duplicates first (use encoded_keys)
-        # TODO: Parallel map
-        decoded_solutions = map(problem.decode_solution,
-                                [population[i] for i in to_decode_indices])
+        # Create mapping (dict) of key to list of indices
+        # Compact those with multiple indices
+        if pool is not None:
+            # Parallel map
+            decoded_solutions = pool.map(problem.decode_solution, [
+                population[i] for i in to_decode_indices
+            ])
+        else:
+            decoded_solutions = map(problem.decode_solution,
+                                    [population[i] for i in to_decode_indices])
+
+        # Add to running list of solutions
         for i, decoded_solution in zip(to_decode_indices, decoded_solutions):
             solutions[i] = decoded_solution
 
@@ -283,9 +331,15 @@ class Optimizer(object):
 
         # Evaluate solutions
         # TODO: Remove duplicates first (use decoded_keys to find duplicates, don't if decoded_key is None)
-        # TODO: Parallel map
-        evaled_fitnesses = map(problem.get_fitness,
-                               [solutions[i] for i in to_eval_indices])
+        if pool is not None:
+            # Parallel map
+            evaled_fitnesses = pool.map(
+                problem.get_fitness, [solutions[i] for i in to_eval_indices])
+        else:
+            evaled_fitnesses = map(problem.get_fitness,
+                                   [solutions[i] for i in to_eval_indices])
+
+        # Add to running list of fitnesses
         for i, fitness_finished in zip(to_eval_indices, evaled_fitnesses):
             # Unpack fitness_finished tuple
             try:

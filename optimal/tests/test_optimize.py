@@ -24,6 +24,8 @@
 
 import copy
 import random
+import functools
+import pathos
 
 import numpy
 
@@ -40,7 +42,10 @@ def simple_function(binary):
 SIMPLE_PROBLEM = Problem(simple_function)
 
 
-def test_problem_copy():
+#########################
+# Problem
+#########################
+def test_Problem_copy():
     problem = Problem(simple_function, fitness_args=['a'])
     problem_copy = problem.copy()
     assert problem_copy is not problem
@@ -52,9 +57,18 @@ def test_problem_copy():
 
 
 ###############################
+# Optimizer
+###############################
+def test_Optimizer_optimize_parallel():
+    optimzier = GenAlg(2)
+    optimzier.optimize(SIMPLE_PROBLEM, n_processes=random.randint(2, 4))
+    assert optimzier.solution_found
+
+
+###############################
 # Optimizer._get_fitnesses
 ###############################
-def test_optimizer_get_fitnesses_no_finished():
+def test_Optimizer_get_fitnesses_no_finished():
     """Fitnesses should correspond to solutions."""
     # Fitness function is weighted summation of bits
     solution_size = random.randint(1, 50)
@@ -67,7 +81,7 @@ def test_optimizer_get_fitnesses_no_finished():
     _check_get_fitnesses(fitness_func, lambda x: x, solution_size)
 
 
-def test_optimizer_get_fitnesses_correct_with_finished():
+def test_Optimizer_get_fitnesses_correct_with_finished():
     """Fitnesses should correspond to solutions."""
     # Fitness function is weighted summation of bits
     solution_size = random.randint(1, 50)
@@ -85,7 +99,7 @@ def test_optimizer_get_fitnesses_correct_with_finished():
         fitness_func_returns_finished=True)
 
 
-def test_optimizer_get_fitnesses_with_decoder():
+def test_Optimizer_get_fitnesses_with_decoder():
     """Fitnesses should correspond to solutions."""
     # Fitness function is weighted summation of bits
     solution_size = random.randint(1, 50)
@@ -103,7 +117,7 @@ def test_optimizer_get_fitnesses_with_decoder():
     _check_get_fitnesses(fitness_func, decode_func, solution_size)
 
 
-def test_optimizer_get_fitnesses_disabled_encoded_cache():
+def test_Optimizer_get_fitnesses_disabled_encoded_cache():
     """Fitnesses should correspond to solutions."""
     # Fitness function is weighted summation of bits
     solution_size = random.randint(1, 50)
@@ -125,7 +139,7 @@ def test_optimizer_get_fitnesses_disabled_encoded_cache():
     assert optimizer._Optimizer__decoded_cache != {}
 
 
-def test_optimizer_get_fitnesses_disabled_decoded_cache():
+def test_Optimizer_get_fitnesses_disabled_decoded_cache():
     """Fitnesses should correspond to solutions."""
     # Fitness function is weighted summation of bits
     solution_size = random.randint(1, 50)
@@ -147,15 +161,39 @@ def test_optimizer_get_fitnesses_disabled_decoded_cache():
     assert optimizer._Optimizer__decoded_cache == {}
 
 
+def test_Optimizer_get_fitnesses_with_pool():
+    """Fitnesses should correspond to solutions."""
+    # Fitness function is weighted summation of bits
+    solution_size = random.randint(1, 50)
+    weights = numpy.random.random(solution_size)
+
+    def fitness_func(solution):
+        return weights.dot(solution)
+
+    # Test Optimizer._get_fitnesses
+    _check_get_fitnesses(
+        fitness_func,
+        lambda x: x,
+        solution_size,
+        n_processes=random.randint(2, 4))
+
+
 def _check_get_fitnesses(fitness_func,
                          decode_func,
                          solution_size,
                          fitness_func_returns_finished=False,
-                         optimizer=None):
+                         optimizer=None,
+                         n_processes=0):
     """Assert that return values of Optimizer._get_fitnesses are correct."""
     problem = Problem(fitness_func, decode_function=decode_func)
+
     if optimizer is None:
         optimizer = optimize.Optimizer()
+
+    if n_processes > 0:
+        pool = pathos.multiprocessing.Pool(processes=n_processes)
+    else:
+        pool = None
 
     # Use simple map of fitness function over solutions as oracle
     # Repeat to test cache
@@ -166,7 +204,7 @@ def _check_get_fitnesses(fitness_func,
             solution_size)
 
         solutions, fitnesses, finished = optimizer._get_fitnesses(
-            problem, population)
+            problem, population, pool=pool)
         # NOTE: _get_fitnesses will return None for solutions in cache, this is expected and ok
         assert False not in [
             solution == expected
@@ -191,7 +229,7 @@ def _check_get_fitnesses(fitness_func,
 ###############################
 # Caching
 ###############################
-def test_optimizer_encoded_cache_correct():
+def test_Optimizer_encoded_cache_correct():
     """Should map the correct key to fitness."""
     optimizer = optimize.Optimizer()
 
@@ -210,7 +248,7 @@ def test_optimizer_encoded_cache_correct():
     }
 
 
-def test_optimzier_decoded_cache_correct():
+def test_Optimizer_decoded_cache_correct():
     """Should map the correct key to fitness."""
     optimizer = optimize.Optimizer()
 
@@ -232,7 +270,7 @@ def test_optimzier_decoded_cache_correct():
     }
 
 
-def test_optimize_get_decoded_key():
+def test_Optimizer_get_decoded_key():
     # Hashable
     optimizer = optimize.Optimizer()
     optimizer._get_decoded_key('1') == '1'
@@ -293,7 +331,7 @@ def test_Optimizer_cache_decoded_solution_false():
 ####################################
 # Integration
 ####################################
-def test_optimize_solution_correct():
+def test_Optimizer_optimize_solution_correct():
     optimizer = GenAlg(2)
     assert optimizer.optimize(SIMPLE_PROBLEM) == [1, 1]
 
@@ -301,7 +339,7 @@ def test_optimize_solution_correct():
 ####################################
 # Hyperparameters
 ####################################
-def test_get_hyperparameters():
+def test_Optimizer_get_hyperparameters():
     optimizer = optimize.StandardOptimizer(2)
 
     hyperparameters = optimizer._get_hyperparameters()
@@ -309,14 +347,14 @@ def test_get_hyperparameters():
     assert hyperparameters['_population_size']
 
 
-def test_set_hyperparameters_wrong_parameter():
+def test_Optimizer_set_hyperparameters_wrong_parameter():
     optimizer = optimize.StandardOptimizer(2)
 
     with pytest.raises(ValueError):
         optimizer._set_hyperparameters({'test': None})
 
 
-def test_meta_optimize_parameter_locks():
+def test_Optimizer_meta_optimize_parameter_locks():
     # Run meta optimize with locks
     # assert that locked parameters did not change
 
