@@ -21,7 +21,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ###############################################################################
-
 """Gravitational search algorithm"""
 
 import random
@@ -40,9 +39,13 @@ class GSA(optimize.StandardOptimizer):
     Perform gravitational search algorithm optimization with a given fitness function.
     """
 
-    def __init__(self, solution_size, lower_bounds, upper_bounds,
+    def __init__(self,
+                 solution_size,
+                 lower_bounds,
+                 upper_bounds,
                  population_size=20,
-                 grav_initial=1.0, grav_reduction_rate=0.5):
+                 grav_initial=1.0,
+                 grav_reduction_rate=0.5):
         """Create an object that optimizes a given fitness function with GSA.
 
         Args:
@@ -69,9 +72,15 @@ class GSA(optimize.StandardOptimizer):
 
         # Hyperparameter definitions
         self._hyperparameters['_grav_initial'] = {
-            'type': 'float', 'min': 0.0, 'max': 1.0}
+            'type': 'float',
+            'min': 0.0,
+            'max': 1.0
+        }
         self._hyperparameters['_grav_reduction_rate'] = {
-            'type': 'float', 'min': 0.0, 'max': 1.0}
+            'type': 'float',
+            'min': 0.0,
+            'max': 1.0
+        }
 
     def initialize(self):
         # Initialize GSA variables
@@ -79,20 +88,21 @@ class GSA(optimize.StandardOptimizer):
             self._population_size
 
     def initial_population(self):
-        return _initial_population_gsa(self._population_size, self._solution_size,
-                                       self._lower_bounds, self._upper_bounds)
+        return _initial_population_gsa(self._population_size,
+                                       self._solution_size, self._lower_bounds,
+                                       self._upper_bounds)
 
     def next_population(self, population, fitnesses):
-        new_pop, new_velocities = _new_population_gsa(population, fitnesses, self._velocities,
-                                                      self._lower_bounds, self._upper_bounds,
-                                                      self._grav_initial, self._grav_reduction_rate,
-                                                      self.iteration, self._max_iterations)
+        new_pop, new_velocities = _new_population_gsa(
+            population, fitnesses, self._velocities, self._lower_bounds,
+            self._upper_bounds, self._grav_initial, self._grav_reduction_rate,
+            self.iteration, self._max_iterations)
         self._velocities = new_velocities
         return new_pop
 
 
-def _initial_population_gsa(population_size, solution_size,
-                            lower_bounds, upper_bounds):
+def _initial_population_gsa(population_size, solution_size, lower_bounds,
+                            upper_bounds):
     """Create a random initial population of floating point values.
 
     Args:
@@ -108,15 +118,16 @@ def _initial_population_gsa(population_size, solution_size,
     """
     if len(lower_bounds) != solution_size or len(upper_bounds) != solution_size:
         raise ValueError(
-            "Lower and upper bounds much have a length equal to the problem size.")
+            "Lower and upper bounds much have a length equal to the problem size."
+        )
 
     return common.make_population(population_size, common.random_real_solution,
                                   solution_size, lower_bounds, upper_bounds)
 
 
-def _new_population_gsa(population, fitnesses, velocities,
-                        lower_bounds, upper_bounds,
-                        grav_initial, grav_reduction_rate, iteration, max_iterations):
+def _new_population_gsa(population, fitnesses, velocities, lower_bounds,
+                        upper_bounds, grav_initial, grav_reduction_rate,
+                        iteration, max_iterations):
     """Generate a new population as given by GSA algorithm.
 
     In GSA paper, grav_initial is G_i
@@ -128,30 +139,34 @@ def _new_population_gsa(population, fitnesses, velocities,
     solution_size = len(population[0])
 
     # In GSA paper, grav is G
-    grav = _next_grav_gsa(grav_initial, grav_reduction_rate,
-                          iteration, max_iterations)
+    grav = _next_grav_gsa(grav_initial, grav_reduction_rate, iteration,
+                          max_iterations)
     masses = _get_masses(fitnesses)
 
     # Create bundled solution with position and mass for the K best calculation
     # Also store index to later check if two solutions are the same
     # Sorted by solution fitness (mass)
-    solutions = [{'pos': pos, 'mass': mass, 'index': i}
-                 for i, (pos, mass) in enumerate(zip(population, masses))]
+    solutions = [{
+        'pos': pos,
+        'mass': mass,
+        'index': i
+    } for i, (pos, mass) in enumerate(zip(population, masses))]
     solutions.sort(key=lambda x: x['mass'], reverse=True)
 
     # Get the force on each solution
     # Only the best K solutions apply force
     # K linearly decreases to 1
-    num_best = int(population_size - (population_size - 1)
-                   * (iteration / float(max_iterations)))
+    num_best = int(population_size - (population_size - 1) *
+                   (iteration / float(max_iterations)))
     forces = []
     for i in range(population_size):
         force_vectors = []
         for j in range(num_best):
             # If it is not the same solution
             if i != solutions[j]['index']:
-                force_vectors.append(_gsa_force(grav, masses[i], solutions[j]['mass'],
-                                                population[i], solutions[j]['pos']))
+                force_vectors.append(
+                    _gsa_force(grav, masses[i], solutions[j]['mass'],
+                               population[i], solutions[j]['pos']))
         forces.append(_gsa_total_force(force_vectors, solution_size))
 
     # Get the acceleration of each solution
@@ -162,28 +177,30 @@ def _new_population_gsa(population, fitnesses, velocities,
     # Update the velocity of each solution
     new_velocities = []
     for i in range(population_size):
-        new_velocities.append(_gsa_update_velocity(
-            velocities[i], accelerations[i]))
+        new_velocities.append(
+            _gsa_update_velocity(velocities[i], accelerations[i]))
 
     # Create the new population
     new_population = []
     for i in range(population_size):
         new_position = _gsa_update_position(population[i], new_velocities[i])
         # Constrain to bounds
-        new_position = list(numpy.clip(
-            new_position, lower_bounds, upper_bounds))
+        new_position = list(
+            numpy.clip(new_position, lower_bounds, upper_bounds))
 
         new_population.append(new_position)
 
     return new_population, new_velocities
 
 
-def _next_grav_gsa(grav_initial, grav_reduction_rate, iteration, max_iterations):
+def _next_grav_gsa(grav_initial, grav_reduction_rate, iteration,
+                   max_iterations):
     """Calculate G as given by GSA algorithm.
 
     In GSA paper, grav is G
     """
-    return grav_initial * math.exp(-grav_reduction_rate * iteration / float(max_iterations))
+    return grav_initial * math.exp(
+        -grav_reduction_rate * iteration / float(max_iterations))
 
 
 def _get_masses(fitnesses):
@@ -197,8 +214,8 @@ def _get_masses(fitnesses):
     raw_masses = []
     for fitness in fitnesses:
         # Epsilon is added to prevent divide by zero errors
-        raw_masses.append((fitness - worst_fitness) /
-                          (fitness_range + EPSILON) + EPSILON)
+        raw_masses.append((fitness - worst_fitness) / (fitness_range + EPSILON)
+                          + EPSILON)
 
     # Normalize to obtain final mass for each solution
     total_mass = sum(raw_masses)

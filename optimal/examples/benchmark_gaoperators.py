@@ -21,7 +21,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ###############################################################################
-
 """An example of benchmarking with optimal.
 
 For this example, we'll compare the one point and uniform crossover operators
@@ -41,14 +40,9 @@ from optimal import gaoperators
 from optimal import problems
 from optimal import benchmark
 
-
 PROBLEMS = [
-    problems.ackley_binary,
-    problems.levis_binary,
-    problems.eggholder_binary,
-    problems.table_binary,
-    problems.shaffer_binary,
-    problems.cross_binary
+    problems.ackley_binary, problems.levis_binary, problems.eggholder_binary,
+    problems.table_binary, problems.shaffer_binary, problems.cross_binary
 ]
 
 
@@ -76,8 +70,10 @@ print 'Uniform'
 pprint.pprint(uniform_stats)
 
 # We can obtain an easier comparison by performing another aggregate step
-aggregate_stats = benchmark.aggregate({'One Point': onepoint_stats,
-                                       'Uniform': uniform_stats})
+aggregate_stats = benchmark.aggregate({
+    'One Point': onepoint_stats,
+    'Uniform': uniform_stats
+})
 print
 print 'Both'
 pprint.pprint(aggregate_stats)

@@ -21,7 +21,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ###############################################################################
-
 """Useful functions for working with metaheuristics."""
 
 import math
@@ -43,14 +42,15 @@ def binary_to_int(binary_list, offset=0, upper_bound=None):
     # Convert the binary to an integer
     # First convert the list of binary values into a string
     binary_string = ''.join([str(bit) for bit in binary_list])
-    integer = int(binary_string, 2)  # Convert the base 2 string into an integer
+    integer = int(binary_string,
+                  2)  # Convert the base 2 string into an integer
 
     value = integer + offset
 
     # Trim if necessary
     if (upper_bound is not None) and value > upper_bound:
         # Bounce back. Ex. w/ upper_bound=2: [0, 1, 2, 2, 1, 0]
-        return upper_bound - ((value-offset) % (upper_bound-offset + 1))
+        return upper_bound - ((value - offset) % (upper_bound - offset + 1))
 
     return value
 

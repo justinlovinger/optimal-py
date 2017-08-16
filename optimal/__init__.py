@@ -23,7 +23,7 @@
 ###############################################################################
 
 # All algorithms
-from optimal.algorithms import gaoperators # Also operators for GA
+from optimal.algorithms import gaoperators  # Also operators for GA
 from optimal.algorithms.genalg import GenAlg
 
 from optimal.algorithms.gsa import GSA

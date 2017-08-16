@@ -28,7 +28,7 @@ from optimal import GSA, GenAlg, problems, optimize
 
 
 def test_gsa_sphere():
-    optimizer = GSA(2, [-5.0]*2, [5.0]*2)
+    optimizer = GSA(2, [-5.0] * 2, [5.0] * 2)
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
     optimizer.optimize(problems.sphere_real, max_iterations=1000)
     assert optimizer.solution_found
@@ -38,7 +38,7 @@ def test_gsa_sphere():
 def test_gsa_problems():
     # Attempt to solve various problems
     # Assert that the optimizer can find the solutions
-    optimizer = GSA(2, [-5.0]*2, [5.0]*2)
+    optimizer = GSA(2, [-5.0] * 2, [5.0] * 2)
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
     optimizer.optimize(problems.ackley_real, max_iterations=1000)
     assert optimizer.solution_found
@@ -48,7 +48,7 @@ def test_gsa_problems():
 
 @pytest.mark.slowtest()
 def test_metaoptimize_gsa():
-    optimizer = GSA(2, [-5.0]*2, [5.0]*2)
+    optimizer = GSA(2, [-5.0] * 2, [5.0] * 2)
     optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
     prev_hyperparameters = optimizer._get_hyperparameters()
 
@@ -58,7 +58,9 @@ def test_metaoptimize_gsa():
 
     # Test with metaoptimize, assert that iterations to solution is lower
     optimizer.optimize_hyperparameters(
-        problems.sphere_real, smoothing=1, max_iterations=1,
+        problems.sphere_real,
+        smoothing=1,
+        max_iterations=1,
         _meta_optimizer=GenAlg(None, population_size=2))
     optimizer.optimize(problems.sphere_real)
 

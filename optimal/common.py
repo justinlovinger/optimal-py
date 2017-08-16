@@ -21,10 +21,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ###############################################################################
-
 """Helpful functions for most metaheuristics."""
 
 import random
+
 
 def random_binary_solution(solution_size):
     """Make a list of random 0s and 1s."""
@@ -33,9 +33,14 @@ def random_binary_solution(solution_size):
 
 def random_real_solution(solution_size, lower_bounds, upper_bounds):
     """Make a list of random real numbers between lower and upper bounds."""
-    return [random.uniform(lower_bounds[i], upper_bounds[i]) for i in range(solution_size)]
+    return [
+        random.uniform(lower_bounds[i], upper_bounds[i])
+        for i in range(solution_size)
+    ]
 
 
 def make_population(population_size, solution_generator, *args, **kwargs):
     """Make a population with the supplied generator."""
-    return [solution_generator(*args, **kwargs) for _ in range(population_size)]
+    return [
+        solution_generator(*args, **kwargs) for _ in range(population_size)
+    ]

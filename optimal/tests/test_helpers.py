@@ -24,6 +24,7 @@
 
 from optimal import helpers
 
+
 def test_binary_to_int_upper_bound():
     assert helpers.binary_to_int([0, 0], upper_bound=2) == 0
     assert helpers.binary_to_int([0, 1], upper_bound=2) == 1

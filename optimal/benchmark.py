@@ -21,7 +21,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ###############################################################################
-
 """Functions for benchmarking and testing metaheuristics."""
 
 import math
@@ -73,7 +72,8 @@ def _sd_of_runs(stats, mean, key='runs'):
         # Skip non numberic attributes
         if isinstance(first[stat_key], numbers.Number):
             standard_deviation[stat_key] = math.sqrt(
-                sum((run[stat_key] - mean[stat_key])**2 for run in stats[key]) / float(num_runs))
+                sum((run[stat_key] - mean[stat_key])**2
+                    for run in stats[key]) / float(num_runs))
 
     return standard_deviation
 
@@ -110,9 +110,11 @@ def benchmark(optimizer, problem, max_iterations=100, runs=20):
         else:
             finished_num = 0.0
 
-        stats_ = {'fitness': optimizer.best_fitness,
-                  'fitness_runs': optimizer.fitness_runs,
-                  'solution_found': finished_num}
+        stats_ = {
+            'fitness': optimizer.best_fitness,
+            'fitness_runs': optimizer.fitness_runs,
+            'solution_found': finished_num
+        }
         stats['runs'].append(stats_)
 
         # Little progress 'bar'
@@ -143,8 +145,8 @@ def compare(optimizers, problems, all_max_iterations=100, runs=20):
     Returns:
         dict; mapping optimizer identifier to stats.
     """
-    if not (isinstance(optimizers, collections.Iterable) or
-            isinstance(problems, collections.Iterable)):
+    if not (isinstance(optimizers, collections.Iterable)
+            or isinstance(problems, collections.Iterable)):
         raise TypeError('optimizers or problems must be iterable')
 
     # If optimizers is not a list, repeat into list for each problem
@@ -157,11 +159,12 @@ def compare(optimizers, problems, all_max_iterations=100, runs=20):
 
     # If max_iterations is an integer, repeat it into a list
     if not isinstance(all_max_iterations, collections.Iterable):
-        all_max_iterations = [all_max_iterations]*len(optimizers)
+        all_max_iterations = [all_max_iterations] * len(optimizers)
 
     stats = {}
     key_counts = {}
-    for optimizer, problem, max_iterations in zip(optimizers, problems, all_max_iterations):
+    for optimizer, problem, max_iterations in zip(optimizers, problems,
+                                                  all_max_iterations):
         # For nice human readable dictionaries, extract useful names from
         # optimizer
         class_name = optimizer.__class__.__name__
@@ -181,7 +184,8 @@ def compare(optimizers, problems, all_max_iterations=100, runs=20):
         print key + ': ',
 
         # Finally, get the actual stats
-        stats[key] = benchmark(optimizer, problem, max_iterations=max_iterations, runs=runs)
+        stats[key] = benchmark(
+            optimizer, problem, max_iterations=max_iterations, runs=runs)
 
         print
 
@@ -204,7 +208,8 @@ def aggregate(all_stats):
         aggregate_stats['means'].append(mean_stats)
 
         # also keep track of standard deviations
-        sd_stats = copy.deepcopy(all_stats[optimizer_key]['standard_deviation'])
+        sd_stats = copy.deepcopy(
+            all_stats[optimizer_key]['standard_deviation'])
         sd_stats['name'] = optimizer_key
         aggregate_stats['standard_deviations'].append(sd_stats)
 

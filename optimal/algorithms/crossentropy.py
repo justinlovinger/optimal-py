@@ -21,7 +21,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ###############################################################################
-
 """Cross entropy (CE) algorithm for optimization.
 
 This algorithm generates solutions from a probability density function (pdf),
@@ -38,9 +37,11 @@ from optimal import optimize
 class CrossEntropy(optimize.StandardOptimizer):
     """Cross entropy optimization."""
 
-    def __init__(self, solution_size,
+    def __init__(self,
+                 solution_size,
                  population_size=20,
-                 pdfs=None, quantile=0.9):
+                 pdfs=None,
+                 quantile=0.9):
         super(CrossEntropy, self).__init__(solution_size, population_size)
 
         # Cross entropy variables
@@ -60,7 +61,10 @@ class CrossEntropy(optimize.StandardOptimizer):
 
         # Meta optimize parameters
         self._hyperparameters['_quantile'] = {
-            'type': 'float', 'min': 0.0, 'max': 1.0}
+            'type': 'float',
+            'min': 0.0,
+            'max': 1.0
+        }
 
     def initialize(self):
         # Start with a random pdf
@@ -72,8 +76,8 @@ class CrossEntropy(optimize.StandardOptimizer):
 
     def next_population(self, population, fitnesses):
         # Update pdf, then sample new population
-        self.pdf = _update_pdf(population, fitnesses,
-                               self.pdfs, self.__quantile_offset)
+        self.pdf = _update_pdf(population, fitnesses, self.pdfs,
+                               self.__quantile_offset)
 
         # New population is randomly sampled, independent of old population
         return _sample(self.pdf, self._population_size)
@@ -86,8 +90,8 @@ class CrossEntropy(optimize.StandardOptimizer):
     @_quantile.setter
     def _quantile(self, value):
         self.__quantile = value
-        self.__quantile_offset = _get_quantile_offset(
-            self._population_size, value)
+        self.__quantile_offset = _get_quantile_offset(self._population_size,
+                                                      value)
 
 
 def _get_quantile_offset(num_values, quantile):
@@ -158,7 +162,10 @@ def _best_pdf(pdfs, population, fitnesses, fitness_threshold):
     # We can use the built in max function
     # we just need to provide a key that provides the value of the
     # stochastic program defined for cross entropy
-    return max(pdfs, key=lambda pdf: _pdf_value(pdf, population, fitnesses, fitness_threshold))
+    return max(
+        pdfs,
+        key=
+        lambda pdf: _pdf_value(pdf, population, fitnesses, fitness_threshold))
 
 
 def _get_quantile_cutoff(values, quantile_offset):

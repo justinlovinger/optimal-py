@@ -29,63 +29,51 @@ from optimal.algorithms import crossentropy
 
 
 @pytest.mark.parametrize('solution,pdf,expected', [
-        ([1, 1, 1], [1.0, 1.0, 1.0], 1.0),
-        ([1, 1, 1], [0.0, 0.0, 0.0], 0.0),
-        ([0, 0, 0], [1.0, 1.0, 1.0], 0.0),
-        ([0, 0, 0], [0.5, 0.5, 0.5], 0.5),
-        ([1, 1, 1], [0.5, 0.5, 0.5], 0.5),
-        ])
+    ([1, 1], [0.5, 0.5], 0.25),
+    ([0, 0], [0.5, 0.5], 0.25),
+    ([0, 0], [0.0, 0.0], 1.0),
+    ([1, 1], [1.0, 1.0], 1.0),
+    ([1, 1, 1], [1.0, 1.0, 1.0], 1.0),
+    ([1, 1, 1], [0.0, 0.0, 0.0], 0.0),
+    ([0, 0, 0], [1.0, 1.0, 1.0], 0.0),
+    ([0, 0, 0], [0.5, 0.5, 0.5], 0.125),
+    ([1, 1, 1], [0.5, 0.5, 0.5], 0.125),
+])
 def test_chance(solution, pdf, expected):
     assert crossentropy._chance(solution, pdf) == expected
 
 
 @pytest.mark.parametrize('values,q,expected', [
-        ([0.0, 0.5, 1.0], 1, 0.5),
-        ([0.0, 0.5, 1.0], 0, 1.0),
-        ([0.0, 0.5, 1.0], 2, 0.0),
-        ([1.0, 0.5, 0.0], 0, 1.0),
-        ])
+    ([0.0, 0.5, 1.0], 1, 0.5),
+    ([0.0, 0.5, 1.0], 0, 1.0),
+    ([0.0, 0.5, 1.0], 2, 0.0),
+    ([1.0, 0.5, 0.0], 0, 1.0),
+])
 def test_quantile_cutoff(values, q, expected):
     assert crossentropy._get_quantile_cutoff(values, q) == expected
 
 
-@pytest.mark.parametrize('num_values,q,expected', [
-        (10, 1.0, 0),
-        (10, 0.0, 9),
-        (10, 0.5, 4)
-        ])
+@pytest.mark.parametrize('num_values,q,expected', [(10, 1.0, 0), (10, 0.0, 9),
+                                                   (10, 0.5, 4)])
 def test_get_quantile_offset(num_values, q, expected):
     assert crossentropy._get_quantile_offset(num_values, q) == expected
-
-
-def test_chance():
-    solution = [1, 1]
-    pdf = [0.5, 0.5]
-    assert crossentropy._chance(solution, pdf) == 0.25
-
-    solution = [0, 0]
-    assert crossentropy._chance(solution, pdf) == 0.25
-
-    pdf = [0.0, 0.0]
-    assert crossentropy._chance(solution, pdf) == 1.0
-
-    solution = [1, 1]
-    pdf = [1.0, 1.0]
-    assert crossentropy._chance(solution, pdf) == 1.0
 
 
 def test_best_pdf():
     solutions = [[1, 1], [0, 1], [0, 0]]
     fitnesses = [1.0, 0.5, 0.25]
     pdfs = [[1.0, 1.0], [0.5, 0.5], [0.0, 0.0]]
-    assert crossentropy._best_pdf(pdfs, solutions, fitnesses, 0.4) == [1.0, 1.0]
+    assert crossentropy._best_pdf(pdfs, solutions, fitnesses,
+                                  0.4) == [1.0, 1.0]
 
     fitnesses = [0.25, 0.5, 1.0]
-    assert crossentropy._best_pdf(pdfs, solutions, fitnesses, 0.4) == [0.0, 0.0]
+    assert crossentropy._best_pdf(pdfs, solutions, fitnesses,
+                                  0.4) == [0.0, 0.0]
 
     fitnesses = [1.0, 0.5, 0.25]
     pdfs = [[1.0, 1.0], [0.5, 1.0], [0.0, 0.0]]
-    assert crossentropy._best_pdf(pdfs, solutions, fitnesses, 0.4) == [0.5, 1.0]
+    assert crossentropy._best_pdf(pdfs, solutions, fitnesses,
+                                  0.4) == [0.5, 1.0]
 
 
 def test_crossentropy_sphere():
@@ -121,7 +109,9 @@ def test_metaoptimize_crossentropy():
 
     # Test with metaoptimize, assert that iterations to solution is lower
     optimizer.optimize_hyperparameters(
-        problems.sphere_binary, smoothing=1, max_iterations=1,
+        problems.sphere_binary,
+        smoothing=1,
+        max_iterations=1,
         _meta_optimizer=GenAlg(None, population_size=2))
     optimizer.optimize(problems.sphere_binary)
 

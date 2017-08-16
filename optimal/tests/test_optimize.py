@@ -33,9 +33,12 @@ from optimal import optimize, common, GenAlg, Problem
 
 
 def simple_function(binary):
-    finished = binary[0] and binary[1]
-    return float(binary[0])+float(binary[1])+0.001, finished
+    return (float(binary[0]) + float(binary[1]) + 0.001), (binary[0]
+                                                           and binary[1])
+
+
 SIMPLE_PROBLEM = Problem(simple_function)
+
 
 def test_problem_copy():
     problem = Problem(simple_function, fitness_args=['a'])
@@ -46,6 +49,7 @@ def test_problem_copy():
     problem_copy = problem.copy(fitness_args=['a', 'b'])
     assert problem_copy._fitness_args == ['a', 'b']
     assert problem._fitness_args == ['a']
+
 
 ###############################
 # Optimizer._get_fitnesses
@@ -113,8 +117,8 @@ def test_optimizer_get_fitnesses_disabled_encoded_cache():
     optimizer.cache_encoded_solution = False
 
     # Test Optimizer._get_fitnesses
-    _check_get_fitnesses(fitness_func, lambda x: x, solution_size,
-                         optimizer=optimizer)
+    _check_get_fitnesses(
+        fitness_func, lambda x: x, solution_size, optimizer=optimizer)
 
     # Check caches as expected
     assert optimizer._Optimizer__encoded_cache == {}
@@ -135,15 +139,17 @@ def test_optimizer_get_fitnesses_disabled_decoded_cache():
     optimizer.cache_decoded_solution = False
 
     # Test Optimizer._get_fitnesses
-    _check_get_fitnesses(fitness_func, lambda x: x, solution_size,
-                         optimizer=optimizer)
+    _check_get_fitnesses(
+        fitness_func, lambda x: x, solution_size, optimizer=optimizer)
 
     # Check caches as expected
     assert optimizer._Optimizer__encoded_cache != {}
     assert optimizer._Optimizer__decoded_cache == {}
 
 
-def _check_get_fitnesses(fitness_func, decode_func, solution_size,
+def _check_get_fitnesses(fitness_func,
+                         decode_func,
+                         solution_size,
                          fitness_func_returns_finished=False,
                          optimizer=None):
     """Assert that return values of Optimizer._get_fitnesses are correct."""
@@ -156,13 +162,16 @@ def _check_get_fitnesses(fitness_func, decode_func, solution_size,
     for _ in range(100):
         # Create a random population, and compare values returned by _get_fitness to simple maps
         population = common.make_population(
-            random.randint(1, 20), common.random_binary_solution, solution_size)
+            random.randint(1, 20), common.random_binary_solution,
+            solution_size)
 
-        solutions, fitnesses, finished = optimizer._get_fitnesses(problem, population)
+        solutions, fitnesses, finished = optimizer._get_fitnesses(
+            problem, population)
         # NOTE: _get_fitnesses will return None for solutions in cache, this is expected and ok
         assert False not in [
             solution == expected
-            for solution, expected in zip(solutions, map(decode_func, population))
+            for solution, expected in zip(solutions,
+                                          map(decode_func, population))
             if solution is not None
         ]
 
@@ -172,7 +181,8 @@ def _check_get_fitnesses(fitness_func, decode_func, solution_size,
             # Need to strip finished from fitness_func return values
             assert fitnesses == [
                 fitness_finished[0]
-                for fitness_finished in map(fitness_func, map(decode_func, population))
+                for fitness_finished in map(fitness_func,
+                                            map(decode_func, population))
             ]
 
         assert finished is False
@@ -198,6 +208,7 @@ def test_optimizer_encoded_cache_correct():
         (1, 0): 1.0,
         (1, 1): 1.5
     }
+
 
 def test_optimzier_decoded_cache_correct():
     """Should map the correct key to fitness."""
@@ -278,6 +289,7 @@ def test_Optimizer_cache_decoded_solution_false():
     assert optimizer._Optimizer__encoded_cache != {}
     assert optimizer._Optimizer__decoded_cache == {}
 
+
 ####################################
 # Integration
 ####################################
@@ -310,15 +322,16 @@ def test_meta_optimize_parameter_locks():
 
     # Only optimize mutation chance
     parameter_locks = [
-        '_population_size', '_crossover_chance',
-        '_selection_function', '_crossover_function'
+        '_population_size', '_crossover_chance', '_selection_function',
+        '_crossover_function'
     ]
 
     my_genalg = GenAlg(2)
     original = copy.deepcopy(my_genalg)
 
     # Low smoothing for faster performance
-    my_genalg.optimize_hyperparameters(SIMPLE_PROBLEM, parameter_locks=parameter_locks, smoothing=1)
+    my_genalg.optimize_hyperparameters(
+        SIMPLE_PROBLEM, parameter_locks=parameter_locks, smoothing=1)
 
     # Check that mutation chance changed
     assert my_genalg._mutation_chance != original._mutation_chance

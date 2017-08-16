@@ -21,7 +21,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ###############################################################################
-
 """General optimizer code for any specific algorithm."""
 
 import copy
@@ -37,9 +36,14 @@ class Problem(object):
     Contains everything needed to decode and calculate the fitness
     of a potential solution to a problem.
     """
-    def __init__(self, fitness_function, decode_function=lambda x: x,
-                 fitness_args=[], decode_args=[],
-                 fitness_kwargs={}, decode_kwargs={}):
+
+    def __init__(self,
+                 fitness_function,
+                 decode_function=lambda x: x,
+                 fitness_args=[],
+                 decode_args=[],
+                 fitness_kwargs={},
+                 decode_kwargs={}):
         self._fitness_function = fitness_function
         self._decode_function = decode_function
 
@@ -49,9 +53,13 @@ class Problem(object):
         self._fitness_kwargs = fitness_kwargs
         self._decode_kwargs = decode_kwargs
 
-    def copy(self, fitness_function=None, decode_function=None,
-             fitness_args=None, decode_args=None,
-             fitness_kwargs=None, decode_kwargs=None):
+    def copy(self,
+             fitness_function=None,
+             decode_function=None,
+             fitness_args=None,
+             decode_args=None,
+             fitness_kwargs=None,
+             decode_kwargs=None):
         """Return a copy of this problem.
 
         Optionally replace this problems arguments with those passed in.
@@ -70,17 +78,22 @@ class Problem(object):
             decode_kwargs = self._decode_kwargs
 
         return Problem(
-            fitness_function, decode_function=decode_function,
-            fitness_args=fitness_args, decode_args=decode_args,
-            fitness_kwargs=fitness_kwargs, decode_kwargs=decode_kwargs)
+            fitness_function,
+            decode_function=decode_function,
+            fitness_args=fitness_args,
+            decode_args=decode_args,
+            fitness_kwargs=fitness_kwargs,
+            decode_kwargs=decode_kwargs)
 
     def get_fitness(self, solution):
         """Return fitness for the given solution."""
-        return self._fitness_function(solution, *self._fitness_args, **self._fitness_kwargs)
+        return self._fitness_function(solution, *self._fitness_args,
+                                      **self._fitness_kwargs)
 
     def decode_solution(self, encoded_solution):
         """Return solution from an encoded representation."""
-        return self._decode_function(encoded_solution, *self._decode_args, **self._decode_kwargs)
+        return self._decode_function(encoded_solution, *self._decode_args,
+                                     **self._decode_kwargs)
 
 
 class Optimizer(object):
@@ -167,19 +180,21 @@ class Optimizer(object):
         try:
             # Begin optimization loop
             for self.iteration in range(1, self._max_iterations + 1):
-                solutions, fitnesses, finished = self._get_fitnesses(problem, population)
+                solutions, fitnesses, finished = self._get_fitnesses(
+                    problem, population)
 
                 # If the best fitness from this iteration is better than
                 # the global best
-                best_index, best_fitness = max(enumerate(fitnesses), key=operator.itemgetter(1))
+                best_index, best_fitness = max(
+                    enumerate(fitnesses), key=operator.itemgetter(1))
                 if best_fitness > best_solution['fitness']:
                     # Store the new best solution
                     best_solution['fitness'] = best_fitness
                     best_solution['solution'] = solutions[best_index]
 
                 if self.logging and self._logging_func:
-                    self._logging_func(
-                        self.iteration, fitnesses, best_solution)
+                    self._logging_func(self.iteration, fitnesses,
+                                       best_solution)
 
                 if finished:
                     self.solution_found = True
@@ -251,7 +266,6 @@ class Optimizer(object):
         for i, decoded_solution in zip(to_decode_indices, decoded_solutions):
             solutions[i] = decoded_solution
 
-
         #############################
         # Evaluating
         #############################
@@ -282,7 +296,6 @@ class Optimizer(object):
                 fitness = fitness_finished
 
             fitnesses[i] = fitness
-
 
         #############################
         # Finishing
@@ -362,8 +375,9 @@ class Optimizer(object):
             try:
                 getattr(self, name)
             except AttributeError:
-                raise ValueError('Each parameter in parameters must be an attribute. '
-                                 '{} is not.'.format(name))
+                raise ValueError(
+                    'Each parameter in parameters must be an attribute. '
+                    '{} is not.'.format(name))
             setattr(self, name, value)
 
     def _get_hyperparameters(self):
@@ -373,9 +387,13 @@ class Optimizer(object):
             hyperparameters[key] = getattr(self, key)
         return hyperparameters
 
-    def optimize_hyperparameters(self, problems, parameter_locks=None,
-                                 smoothing=20, max_iterations=100,
-                                 _meta_optimizer=None, _low_memory=True):
+    def optimize_hyperparameters(self,
+                                 problems,
+                                 parameter_locks=None,
+                                 smoothing=20,
+                                 max_iterations=100,
+                                 _meta_optimizer=None,
+                                 _low_memory=True):
         """Optimize hyperparameters for a given problem.
 
         Args:
@@ -395,11 +413,15 @@ class Optimizer(object):
         if isinstance(problems, collections.Iterable):
             for problem in problems:
                 if not isinstance(problem, Problem):
-                    raise TypeError('problem must be Problem instance or list of Problem instances')
+                    raise TypeError(
+                        'problem must be Problem instance or list of Problem instances'
+                    )
         elif isinstance(problems, Problem):
             problems = [problems]
         else:
-            raise TypeError('problem must be Problem instance or list of Problem instances')
+            raise TypeError(
+                'problem must be Problem instance or list of Problem instances'
+            )
 
         # Copy to avoid permanent modification
         meta_parameters = copy.deepcopy(self._hyperparameters)
@@ -415,7 +437,8 @@ class Optimizer(object):
 
         # We also need to create a decode function to transform the binary solution
         # into parameters for the metaheuristic
-        decode = _make_hyperparameter_decode_func(locked_values, meta_parameters)
+        decode = _make_hyperparameter_decode_func(locked_values,
+                                                  meta_parameters)
 
         # A master fitness dictionary can be stored for use between calls
         # to meta_fitness
@@ -430,8 +453,10 @@ class Optimizer(object):
             '_runs': smoothing,
             '_master_fitness_dict': master_fitness_dict,
         }
-        META_FITNESS = Problem(_meta_fitness_func, decode_function=decode,
-                               fitness_kwargs=additional_parameters)
+        META_FITNESS = Problem(
+            _meta_fitness_func,
+            decode_function=decode,
+            fitness_kwargs=additional_parameters)
         if _meta_optimizer is None:
             # Initialize default meta optimizer
             # GenAlg is used because it supports both discrete and continous
@@ -446,7 +471,8 @@ class Optimizer(object):
             _meta_optimizer._solution_size = solution_size
 
         # Determine the best hyperparameters with a metaheuristic
-        best_parameters = _meta_optimizer.optimize(META_FITNESS, max_iterations=max_iterations)
+        best_parameters = _meta_optimizer.optimize(
+            META_FITNESS, max_iterations=max_iterations)
 
         # Set the hyperparameters inline
         self._set_hyperparameters(best_parameters)
@@ -473,7 +499,10 @@ class StandardOptimizer(Optimizer):
 
         # Parameters for metaheuristic optimization
         self._hyperparameters['_population_size'] = {
-            'type': 'int', 'min': 2, 'max': 1026}
+            'type': 'int',
+            'min': 2,
+            'max': 1026
+        }
 
 
 def _print_fitnesses(iteration, fitnesses, best_solution, frequency=1):
@@ -526,8 +555,8 @@ def _get_hyperparameter_solution_size(meta_parameters):
             # * 1000 provides 1000 values between each natural number
             binary_size = helpers.binary_size(float_range * 1000)
         else:
-            raise ValueError(
-                'Parameter type "{}" does not match known values'.format(parameters['type']))
+            raise ValueError('Parameter type "{}" does not match known values'.
+                             format(parameters['type']))
 
         # Store binary size with parameters for use in decode function
         parameters['binary_size'] = binary_size
@@ -562,16 +591,19 @@ def _make_hyperparameter_decode_func(locked_values, meta_parameters):
                     binary, upper_bound=len(parameters['values']) - 1)
                 value = parameters['values'][i]
             elif parameters['type'] == 'int':
-                value = helpers.binary_to_int(binary,
-                                              offset=parameters['min'],
-                                              upper_bound=parameters['max'])
+                value = helpers.binary_to_int(
+                    binary,
+                    offset=parameters['min'],
+                    upper_bound=parameters['max'])
             elif parameters['type'] == 'float':
-                value = helpers.binary_to_float(binary,
-                                                minimum=parameters['min'],
-                                                maximum=parameters['max'])
+                value = helpers.binary_to_float(
+                    binary,
+                    minimum=parameters['min'],
+                    maximum=parameters['max'])
             else:
                 raise ValueError(
-                    'Parameter type "{}" does not match known values'.format(parameters['type']))
+                    'Parameter type "{}" does not match known values'.format(
+                        parameters['type']))
 
             # Store value
             hyperparameters[name] = value
@@ -581,8 +613,11 @@ def _make_hyperparameter_decode_func(locked_values, meta_parameters):
     return decode
 
 
-def _meta_fitness_func(parameters, _optimizer, _problems,
-                       _master_fitness_dict, _runs=20):
+def _meta_fitness_func(parameters,
+                       _optimizer,
+                       _problems,
+                       _master_fitness_dict,
+                       _runs=20):
     """Test a metaheuristic with parameters encoded in solution.
 
     Our goal is to minimize number of evaluation runs until a solution is found,

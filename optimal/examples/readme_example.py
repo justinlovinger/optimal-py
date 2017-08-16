@@ -28,6 +28,7 @@ from optimal import GenAlg
 from optimal import Problem
 from optimal import helpers
 
+
 # The genetic algorithm uses binary solutions.
 # A decode function is useful for converting the binary solution to real numbers
 def decode_ackley(binary):
@@ -37,6 +38,7 @@ def decode_ackley(binary):
     x2 = helpers.binary_to_float(binary[16:32], -5.0, 5.0)
     return x1, x2
 
+
 # ackley is our fitness function
 # This is how a user defines to goal of their problem
 def ackley_fitness(solution):
@@ -44,8 +46,9 @@ def ackley_fitness(solution):
 
     # Ackley's function
     # A common mathematical optimization problem
-    output = -20 * math.exp(-0.2 * math.sqrt(0.5 * (x1**2 + x2**2))) - math.exp(
-        0.5 * (math.cos(2 * math.pi * x1) + math.cos(2 * math.pi * x2))) + 20 + math.e
+    output = -20 * math.exp(-0.2 * math.sqrt(0.5 * (
+        x1**2 + x2**2))) - math.exp(0.5 * (math.cos(
+            2 * math.pi * x1) + math.cos(2 * math.pi * x2))) + 20 + math.e
 
     # You can prematurely stop the metaheuristic by returning True
     # as the second return value
@@ -60,6 +63,7 @@ def ackley_fitness(solution):
     # The higher the number, the better the solution
     # Second return argument is a boolean, and optional
     return fitness, finished
+
 
 # Define a problem instance to optimize
 # We can optionally include a decode function

@@ -37,8 +37,11 @@ class GenAlg(optimize.StandardOptimizer):
 
     Perform genetic algorithm optimization with a given fitness function."""
 
-    def __init__(self, chromosome_size, population_size=20,
-                 mutation_chance=0.02, crossover_chance=0.7,
+    def __init__(self,
+                 chromosome_size,
+                 population_size=20,
+                 mutation_chance=0.02,
+                 crossover_chance=0.7,
                  selection_function=gaoperators.tournament_selection,
                  crossover_function=gaoperators.one_point_crossover):
         """Create an object that optimizes a given fitness function with GenAlg.
@@ -66,28 +69,47 @@ class GenAlg(optimize.StandardOptimizer):
 
         # Meta optimize parameters
         self._hyperparameters['_mutation_chance'] = {
-            'type': 'float', 'min': 0.0, 'max': 1.0}
+            'type': 'float',
+            'min': 0.0,
+            'max': 1.0
+        }
         self._hyperparameters['_crossover_chance'] = {
-            'type': 'float', 'min': 0.0, 'max': 1.0}
-        self._hyperparameters['_selection_function'] = {'type': 'discrete',
-                                                        'values': [gaoperators.roulette_selection,
-                                                                   gaoperators.stochastic_selection,
-                                                                   gaoperators.tournament_selection]}
-        self._hyperparameters['_crossover_function'] = {'type': 'discrete',
-                                                        'values': [gaoperators.one_point_crossover,
-                                                                   gaoperators.uniform_crossover]}
+            'type': 'float',
+            'min': 0.0,
+            'max': 1.0
+        }
+        self._hyperparameters['_selection_function'] = {
+            'type':
+            'discrete',
+            'values': [
+                gaoperators.roulette_selection,
+                gaoperators.stochastic_selection,
+                gaoperators.tournament_selection
+            ]
+        }
+        self._hyperparameters['_crossover_function'] = {
+            'type':
+            'discrete',
+            'values':
+            [gaoperators.one_point_crossover, gaoperators.uniform_crossover]
+        }
 
     def initial_population(self):
-        return common.make_population(self._population_size, common.random_binary_solution,
+        return common.make_population(self._population_size,
+                                      common.random_binary_solution,
                                       self._solution_size)
 
     def next_population(self, population, fitnesses):
-        return _new_population_genalg(population, fitnesses,
-                                      self._mutation_chance, self._crossover_chance,
-                                      self._selection_function, self._crossover_function)
+        return _new_population_genalg(
+            population, fitnesses, self._mutation_chance,
+            self._crossover_chance, self._selection_function,
+            self._crossover_function)
 
 
-def _new_population_genalg(population, fitnesses, mutation_chance=0.02, crossover_chance=0.7,
+def _new_population_genalg(population,
+                           fitnesses,
+                           mutation_chance=0.02,
+                           crossover_chance=0.7,
                            selection_function=gaoperators.tournament_selection,
                            crossover_function=gaoperators.one_point_crossover):
     """Perform all genetic algorithm operations on a population, and return a new population.
@@ -111,8 +133,8 @@ def _new_population_genalg(population, fitnesses, mutation_chance=0.02, crossove
     intermediate_population = selection_function(population, fitnesses)
 
     # Crossover
-    new_population = _crossover(
-        intermediate_population, crossover_chance, crossover_function)
+    new_population = _crossover(intermediate_population, crossover_chance,
+                                crossover_function)
 
     # Mutation
     # Mutates chromosomes in place

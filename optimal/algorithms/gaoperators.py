@@ -21,19 +21,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ###############################################################################
-
 """Genetic Algorithm operators for mutation, crossover, and selection."""
 
 import random
 import operator
-
 
 #################################
 # Selection
 #################################
 # TODO: Support diversity factor for all selection algorithms
 
-def tournament_selection(population, fitnesses, num_competitors=2, diversity_weight=0.0):
+
+def tournament_selection(population,
+                         fitnesses,
+                         num_competitors=2,
+                         diversity_weight=0.0):
     """Create a list of parents with tournament selection.
 
     Args:
@@ -48,13 +50,16 @@ def tournament_selection(population, fitnesses, num_competitors=2, diversity_wei
     """
     # Optimization if diversity factor is disabled
     if diversity_weight <= 0.0:
-        fitness_pop = zip(fitnesses, population) # Zip for easy fitness comparison
+        fitness_pop = zip(fitnesses,
+                          population)  # Zip for easy fitness comparison
 
         # Get num_competitors random chromosomes, then add best to result,
         # by taking max fitness and getting chromosome from tuple.
         # Repeat until full.
-        return [max(random.sample(fitness_pop, num_competitors))[1]
-                for _ in range(len(population))]
+        return [
+            max(random.sample(fitness_pop, num_competitors))[1]
+            for _ in range(len(population))
+        ]
     else:
         indices = range(len(population))
 
@@ -63,7 +68,8 @@ def tournament_selection(population, fitnesses, num_competitors=2, diversity_wei
         # diversity_metric is calculated between the given solution,
         # and the list of all currently selected solutions.
         selected_solutions = []
-        for _ in range(len(population)): # Select as many solutions are there are in population
+        # Select as many solutions are there are in population
+        for _ in range(len(population)):
             competitor_indices = random.sample(indices, num_competitors)
 
             # Select by either fitness or diversity,
@@ -91,13 +97,12 @@ def tournament_selection(population, fitnesses, num_competitors=2, diversity_wei
 
 def stochastic_selection(population, fitnesses):
     """Create a list of parents with stochastic universal sampling."""
-    probabilities = _fitnesses_to_probabilities(fitnesses)
-
     pop_size = len(population)
+    probabilities = _fitnesses_to_probabilities(fitnesses)
 
     # Create selection list (for stochastic universal sampling)
     selection_list = []
-    selection_spacing = 1.0 / (pop_size)
+    selection_spacing = 1.0 / pop_size
     selection_start = random.uniform(0.0, selection_spacing)
     for i in range(pop_size):
         selection_list.append(selection_start + selection_spacing * i)
@@ -118,17 +123,18 @@ def roulette_selection(population, fitnesses):
     """Create a list of parents with roulette selection."""
     probabilities = _fitnesses_to_probabilities(fitnesses)
 
-    pop_size = len(population)
-
     intermediate_population = []
-    for _ in range(pop_size):
-        selection = random.uniform(0.0, 1.0)  # choose a random selection
-        for (i, probability) in enumerate(probabilities):  # iterate over probabilities list
-            if probability >= selection:  # first probability that is greater
+    for _ in range(len(population)):
+        # Choose a random individual
+        selection = random.uniform(0.0, 1.0)
+        # Iterate over probabilities list
+        for i, probability in enumerate(probabilities):
+            if probability >= selection:  # First probability that is greater
                 intermediate_population.append(population[i])
                 break
 
     return intermediate_population
+
 
 def _rescale(vector):
     """Scale values in vector to the range [0, 1].
@@ -138,14 +144,14 @@ def _rescale(vector):
     """
     # Subtract min, making smallest value 0
     min_val = min(vector)
-    vector = [v-min_val for v in vector]
+    vector = [v - min_val for v in vector]
 
     # Divide by max, making largest value 1
     max_val = float(max(vector))
     try:
-        return [v/max_val for v in vector]
-    except ZeroDivisionError: # All values are the same
-        return [1.0]*len(vector)
+        return [v / max_val for v in vector]
+    except ZeroDivisionError:  # All values are the same
+        return [1.0] * len(vector)
 
 
 def _diversity_metric(solution, population):
@@ -163,14 +169,14 @@ def _diversity_metric(solution, population):
         sum([_manhattan_distance(solution, other) for other in population])
         # Normalize (assuming each value in solution is in range [0.0, 1.0])
         # NOTE: len(solution) is maximum manhattan distance
-        / (len(population) * len(solution))
-    )
+        / (len(population) * len(solution)))
+
 
 def _manhattan_distance(vec_a, vec_b):
     """Return manhattan distance between two lists of numbers."""
     if len(vec_a) != len(vec_b):
         raise ValueError('len(vec_a) must equal len(vec_b)')
-    return sum(map(lambda a, b: abs(a-b), vec_a, vec_b))
+    return sum(map(lambda a, b: abs(a - b), vec_a, vec_b))
 
 
 def _fitnesses_to_probabilities(fitnesses):
@@ -179,7 +185,7 @@ def _fitnesses_to_probabilities(fitnesses):
     min_fitness = min(fitnesses)
     if min_fitness < 0.0:
         # Make smallest fitness value 0
-        fitnesses = map(lambda f: f-min_fitness, fitnesses)
+        fitnesses = map(lambda f: f - min_fitness, fitnesses)
 
     fitness_sum = sum(fitnesses)
 
@@ -199,6 +205,7 @@ def _fitnesses_to_probabilities(fitnesses):
 
     return probabilities
 
+
 ##############################
 # Crossover
 ##############################
@@ -217,7 +224,7 @@ def one_point_crossover(parents):
 
 
 def _one_parent_crossover(parent_1, parent_2, crossover_point):
-    return parent_1[:crossover_point]+parent_2[crossover_point:]
+    return parent_1[:crossover_point] + parent_2[crossover_point:]
 
 
 def uniform_crossover(parents):
@@ -249,7 +256,8 @@ def random_flip_mutate(population, mutation_chance):
 
     Mutation occurs by randomly flipping bits (genes).
     """
-    for chromosome in population:  # for every chromosome in the population
-        for i in range(len(chromosome)):  # for every bit in the chromosome
-            if random.uniform(0.0, 1.0) <= mutation_chance:  # if mutation takes place
+    for chromosome in population:  # For every chromosome in the population
+        for i in range(len(chromosome)):  # For every bit in the chromosome
+            # If mutation takes place
+            if random.uniform(0.0, 1.0) <= mutation_chance:
                 chromosome[i] = 1 - chromosome[i]  # flip the bit
