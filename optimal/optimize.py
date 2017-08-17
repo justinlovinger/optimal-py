@@ -28,7 +28,9 @@ import operator
 import collections
 import functools
 try:
-    import pathos
+    import pickle
+    import dill
+    import multiprocessing
 except ImportError:
     pass
 
@@ -184,10 +186,10 @@ class Optimizer(object):
         # Prepare pool for multiprocessing
         if n_processes > 0:
             try:
-                pool = pathos.multiprocessing.Pool(processes=n_processes)
+                pool = multiprocessing.Pool(processes=n_processes)
             except NameError:
                 raise ImportError(
-                    'pathos library is not available. Install with "pip install pathos".'
+                    'pickle, dill, or multiprocessing library is not available.'
                 )
         else:
             pool = None
@@ -303,9 +305,10 @@ class Optimizer(object):
         # Compact those with multiple indices
         if pool is not None:
             # Parallel map
-            decoded_solutions = pool.map(problem.decode_solution, [
-                population[i] for i in to_decode_indices
-            ])
+            decoded_solutions = pool.map(
+                functools.partial(_unpickle_run,
+                                  pickle.dumps(problem.decode_solution)),
+                [population[i] for i in to_decode_indices])
         else:
             decoded_solutions = map(problem.decode_solution,
                                     [population[i] for i in to_decode_indices])
@@ -334,7 +337,9 @@ class Optimizer(object):
         if pool is not None:
             # Parallel map
             evaled_fitnesses = pool.map(
-                problem.get_fitness, [solutions[i] for i in to_eval_indices])
+                functools.partial(_unpickle_run,
+                                  pickle.dumps(problem.get_fitness)),
+                [solutions[i] for i in to_eval_indices])
         else:
             evaled_fitnesses = map(problem.get_fitness,
                                    [solutions[i] for i in to_eval_indices])
@@ -566,6 +571,17 @@ def _print_fitnesses(iteration, fitnesses, best_solution, frequency=1):
         print 'Best Fitness: ' + str(best_solution['fitness'])
 
 
+def _unpickle_run(pickled_func, arg):
+    """Run pickled_func on arg and return.
+
+    Helper function for multiprocessing.
+    """
+    return pickle.loads(pickled_func)(arg)
+
+
+#############################
+# Hyperparamter optimization
+#############################
 def _parse_parameter_locks(optimizer, meta_parameters, parameter_locks):
     """Synchronize meta_parameters and locked_values.
 

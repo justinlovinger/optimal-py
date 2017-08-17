@@ -25,7 +25,7 @@
 import copy
 import random
 import functools
-import pathos
+import multiprocessing
 
 import numpy
 
@@ -191,7 +191,7 @@ def _check_get_fitnesses(fitness_func,
         optimizer = optimize.Optimizer()
 
     if n_processes > 0:
-        pool = pathos.multiprocessing.Pool(processes=n_processes)
+        pool = multiprocessing.Pool(processes=n_processes)
     else:
         pool = None
 
