@@ -37,6 +37,10 @@ except ImportError:
 from optimal import helpers
 
 
+class UnhashableError(Exception):
+    """Raise when an object cannot be hashed."""
+
+
 def _identity(x):
     """Return x."""
     return x
@@ -47,6 +51,18 @@ class Problem(object):
 
     Contains everything needed to decode and calculate the fitness
     of a potential solution to a problem.
+
+    Args:
+        fitness_function: Function mapping solution to a fitness value.
+            Or a (fitness, finished) tuple.
+            If finished is True, optimization ends immediately.
+        decode_function: Function mapping encoded string to a potential solution.
+            fitness_function takes the output of decode_function.
+        fitness_args: List of arguments (past the first) for fitness_function.
+        decode_args: List of arguments (past the first) for decode_function.
+        fitness_kwargs: Dict of keyword arguments for fitness_function.
+        decode_kwargs: Dict of keyword arguments for decode_function.
+        hash_solution_func: Function mapping solution to unique hash of solution.
     """
 
     def __init__(self,
@@ -55,7 +71,8 @@ class Problem(object):
                  fitness_args=[],
                  decode_args=[],
                  fitness_kwargs={},
-                 decode_kwargs={}):
+                 decode_kwargs={},
+                 hash_solution_func=None):
         self._fitness_function = fitness_function
         self._decode_function = decode_function
 
@@ -64,6 +81,8 @@ class Problem(object):
 
         self._fitness_kwargs = fitness_kwargs
         self._decode_kwargs = decode_kwargs
+
+        self.hash_solution = hash_solution_func
 
     def copy(self,
              fitness_function=None,
@@ -124,6 +143,8 @@ class Optimizer(object):
         self._logging_func = _print_fitnesses
 
         # Set caching parameters
+        # NOTE: Disabling caching also disables corresponding duplicate detection
+        # Resulting in duplicate solutions being decoded and evaluated
         self.cache_encoded_solution = True
         self.cache_decoded_solution = True
         self.clear_cache = True
@@ -321,8 +342,14 @@ class Optimizer(object):
         if self.cache_decoded_solution:
             try:
                 # Try to make solutions hashable
+                # Use user provided hash function if available
+                if problem.hash_solution:
+                    hash_solution_func = problem.hash_solution
+                else:
+                    # Otherwise, default to built in "smart" hash function
+                    hash_solution_func = self._get_decoded_key
                 decoded_keys = [
-                    self._get_decoded_key(solution)
+                    hash_solution_func(solution)
                     # None corresponds to encoded_solutions found in cache
                     if solution is not None else None for solution in solutions
                 ]
@@ -336,7 +363,7 @@ class Optimizer(object):
                         except KeyError:  # Cache miss
                             to_eval_indices.append(i)
 
-            except KeyError:  # Cannot hash solution
+            except UnhashableError:  # Cannot hash solution
                 decoded_keys = None
                 to_eval_indices = to_decode_indices[:]
         else:
@@ -473,7 +500,7 @@ class Optimizer(object):
         return tuple(solution.items())
 
     def _get_decoded_key_none(self, solution):
-        raise KeyError()
+        raise UnhashableError()
 
     def _set_hyperparameters(self, parameters):
         """Set internal optimization parameters."""
