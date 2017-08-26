@@ -277,17 +277,16 @@ class Optimizer(object):
             pool: None/multiprocessing.Pool; Pool of processes for parallel
                 decoding and evaluation.
         """
-        solutions = [None] * len(population)
         fitnesses = [None] * len(population)
-        finished = False
 
         #############################
         # Decoding
         #############################
         if self.cache_encoded_solution:
+            encoded_keys = map(tuple, population)
+
             # Get all fitnesses from encoded_solution cache
             to_decode_indices = []
-            encoded_keys = map(tuple, population)
             for i, encoded_key in enumerate(encoded_keys):
                 try:
                     fitnesses[i] = self.__encoded_cache[encoded_key]
@@ -297,55 +296,68 @@ class Optimizer(object):
                 except KeyError:  # Cache miss
                     to_decode_indices.append(i)
         else:
+            encoded_keys = None
             to_decode_indices = range(len(population))
 
-        # Decode solutions
-        # TODO: Remove duplicates first (use encoded_keys)
-        # Create mapping (dict) of key to list of indices
-        # Compact those with multiple indices
-        if pool is not None:
-            # Parallel map
-            decoded_solutions = pool.map(
-                functools.partial(_unpickle_run,
-                                  pickle.dumps(problem.decode_solution)),
-                [population[i] for i in to_decode_indices])
+        # Decode all that need to be decoded, and combine back into list the same length
+        # as population
+        if encoded_keys is None:
+            to_decode_keys = None
         else:
-            decoded_solutions = map(problem.decode_solution,
-                                    [population[i] for i in to_decode_indices])
+            to_decode_keys = [encoded_keys[i] for i in to_decode_indices]
 
-        # Add to running list of solutions
-        for i, decoded_solution in zip(to_decode_indices, decoded_solutions):
-            solutions[i] = decoded_solution
+        solutions = [None] * len(population)
+        for i, solution in zip(to_decode_indices,
+                               self._pmap(
+                                   problem.decode_solution,
+                                   [population[i] for i in to_decode_indices],
+                                   to_decode_keys,
+                                   pool)):
+            solutions[i] = solution
 
         #############################
         # Evaluating
         #############################
         if self.cache_decoded_solution:
-            # Get all fitnesses from decoded_solution cache
-            to_eval_indices = []
-            decoded_keys = map(self._get_decoded_key, decoded_solutions)
-            for i, decoded_key in zip(to_decode_indices, decoded_keys):
-                try:
-                    fitnesses[i] = self.__decoded_cache[decoded_key]
-                except KeyError:  # Cache miss
-                    to_eval_indices.append(i)
+            try:
+                # Try to make solutions hashable
+                decoded_keys = [
+                    self._get_decoded_key(solution)
+                    # None corresponds to encoded_solutions found in cache
+                    if solution is not None else None for solution in solutions
+                ]
+
+                # Get all fitnesses from decoded_solution cache
+                to_eval_indices = []
+                for i, decoded_key in enumerate(decoded_keys):
+                    if decoded_key is not None:  # Otherwise, fitness already found in encoded cache
+                        try:
+                            fitnesses[i] = self.__decoded_cache[decoded_key]
+                        except KeyError:  # Cache miss
+                            to_eval_indices.append(i)
+
+            except KeyError:  # Cannot hash solution
+                decoded_keys = None
+                to_eval_indices = to_decode_indices[:]
         else:
+            decoded_keys = None
             to_eval_indices = to_decode_indices[:]
 
-        # Evaluate solutions
-        # TODO: Remove duplicates first (use decoded_keys to find duplicates, don't if decoded_key is None)
-        if pool is not None:
-            # Parallel map
-            evaled_fitnesses = pool.map(
-                functools.partial(_unpickle_run,
-                                  pickle.dumps(problem.get_fitness)),
-                [solutions[i] for i in to_eval_indices])
+        # Evaluate all that need to be evaluated, and combine back into fitnesses list
+        if decoded_keys is None:
+            to_eval_keys = None
         else:
-            evaled_fitnesses = map(problem.get_fitness,
-                                   [solutions[i] for i in to_eval_indices])
+            to_eval_keys = [decoded_keys[i] for i in to_eval_indices]
 
-        # Add to running list of fitnesses
-        for i, fitness_finished in zip(to_eval_indices, evaled_fitnesses):
+        finished = False
+        eval_bookkeeping = {}
+        for i, fitness_finished in zip(to_eval_indices,
+                                       self._pmap(
+                                           problem.get_fitness,
+                                           [solutions[i] for i in to_eval_indices],
+                                           to_eval_keys,
+                                           pool,
+                                           bookkeeping_dict=eval_bookkeeping)):
             # Unpack fitness_finished tuple
             try:
                 fitness, maybe_finished = fitness_finished
@@ -361,26 +373,61 @@ class Optimizer(object):
         #############################
         # Bookkeeping
         # keep track of how many times fitness is evaluated
-        self.fitness_runs += len(evaled_fitnesses)
+        self.fitness_runs += len(eval_bookkeeping['key_indices'])  # Evaled once for each unique key
 
         # Add evaluated fitnesses to caches (both of them)
         if self.cache_encoded_solution:
             for i in to_decode_indices:  # Encoded cache misses
                 self.__encoded_cache[encoded_keys[i]] = fitnesses[i]
-        if self.cache_decoded_solution:
-            # This mapping is necessary to easily find decoded key corresponding to pop index
-            # Because decoded keys corespond to to_decode_indices not population indices
-            ind_key_map = [None] * len(population)
-            for map_i, pop_i in enumerate(to_decode_indices):
-                ind_key_map[pop_i] = map_i
-            # Add to decoded cache
+        if self.cache_decoded_solution and decoded_keys is not None:
             for i in to_eval_indices:  # Decoded cache misses
-                decoded_key = decoded_keys[ind_key_map[i]]
-                if decoded_key is not None:
-                    self.__decoded_cache[decoded_key] = fitnesses[i]
+                self.__decoded_cache[decoded_keys[i]] = fitnesses[i]
 
         # Return
+        # assert None not in fitnesses  # Un-comment for debugging
         return solutions, fitnesses, finished
+
+    def _pmap(self, func, items, keys, pool, bookkeeping_dict=None):
+        """Efficiently map func over all items.
+
+        Calls func only once for duplicate items.
+            Item duplicates are detected by corresponding keys.
+            Unless keys is None.
+
+        Serial if pool is None, but still skips duplicates.
+        """
+        if keys is not None:  # Otherwise, cannot hash items
+            # Remove duplicates first (use keys)
+            # Create mapping (dict) of key to list of indices
+            key_indices = _duplicates(keys).values()
+        else:  # Cannot hash items
+            # Assume no duplicates
+            key_indices = [[i] for i in range(len(items))]
+
+        # Use only the first of duplicate indices in decoding
+        if pool is not None:
+            # Parallel map
+            results = pool.map(
+                functools.partial(_unpickle_run, pickle.dumps(func)),
+                [items[i[0]] for i in key_indices])
+        else:
+            results = map(func, [items[i[0]] for i in key_indices])
+
+        # Add bookkeeping
+        if bookkeeping_dict is not None:
+            bookkeeping_dict['key_indices'] = key_indices
+
+        # Combine duplicates back into list
+        all_results = [None] * len(items)
+        for indices, result in zip(key_indices, results):
+            for j, i in enumerate(indices):
+                # Avoid duplicate result objects in list,
+                # in case they are used in functions with side effects
+                if j > 0:
+                    result = copy.deepcopy(result)
+                all_results[i] = result
+
+        return all_results
 
     def _get_decoded_key_type(self, solution):
         # Start by just trying to hash it
@@ -426,7 +473,7 @@ class Optimizer(object):
         return tuple(solution.items())
 
     def _get_decoded_key_none(self, solution):
-        return None
+        raise KeyError()
 
     def _set_hyperparameters(self, parameters):
         """Set internal optimization parameters."""
@@ -569,6 +616,17 @@ def _print_fitnesses(iteration, fitnesses, best_solution, frequency=1):
         print 'Iteration: ' + str(iteration)
         print 'Avg Fitness: ' + str(sum(fitnesses) / len(fitnesses))
         print 'Best Fitness: ' + str(best_solution['fitness'])
+
+
+def _duplicates(list_):
+    """Return dict mapping item -> indices."""
+    item_indices = {}
+    for i, item in enumerate(list_):
+        try:
+            item_indices[item].append(i)
+        except KeyError:  # First time seen
+            item_indices[item] = [i]
+    return item_indices
 
 
 def _unpickle_run(pickled_func, arg):

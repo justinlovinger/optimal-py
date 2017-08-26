@@ -99,6 +99,42 @@ def test_Optimizer_get_fitnesses_correct_with_finished():
         fitness_func_returns_finished=True)
 
 
+def test_Optimizer_get_fitnesses_with_fitness_func_side_effects():
+    """Fitness function modifying solution should not affect fitnesses.
+
+    This could potentially be a problem when there are duplicate solutions.
+    """
+    # Fitness function is weighted summation of bits
+    solution_size = random.randint(1, 50)
+    weights = numpy.random.random(solution_size)
+
+    def fitness_func(solution):
+        for i, val in enumerate(solution):
+            solution[i] *= 2
+        return weights.dot(solution)
+
+    # Test Optimizer._get_fitnesses
+    problem = Problem(fitness_func)
+
+    optimizer = optimize.Optimizer()
+
+
+    # Use simple map of fitness function over solutions as oracle
+    # Repeat to test cache
+    for _ in range(100):
+        # Create a random population, and compare values returned by _get_fitness to simple maps
+        population = common.make_population(
+            random.randint(1, 20), common.random_binary_solution,
+            solution_size)
+
+        solutions, fitnesses, finished = optimizer._get_fitnesses(
+            problem, copy.deepcopy(population), pool=None)
+
+        assert fitnesses == map(fitness_func, population)
+
+        assert finished is False
+
+
 def test_Optimizer_get_fitnesses_with_decoder():
     """Fitnesses should correspond to solutions."""
     # Fitness function is weighted summation of bits
@@ -115,6 +151,41 @@ def test_Optimizer_get_fitnesses_with_decoder():
 
     # Test Optimizer._get_fitnesses
     _check_get_fitnesses(fitness_func, decode_func, solution_size)
+
+
+def test_Optimizer_get_fitnesses_unhashable_solution():
+    """Should not fail when solution cannot be hashed or cached."""
+    # Fitness function is weighted summation of bits
+    solution_size = random.randint(1, 50)
+    weights = numpy.random.random(solution_size)
+
+    def fitness_func(solution):
+        return weights.dot(solution.list)
+
+    class ListWrapper(object):
+        def __init__(self, list_):
+            self.list = list_
+
+        def __eq__(self, other):
+            return type(self) == type(other) and self.list == other.list
+
+        def __hash__(self):
+            raise NotImplementedError()
+
+        def __str__(self):
+            raise NotImplementedError()
+
+    decode_weights = numpy.random.random(solution_size)
+
+    def decode_func(encoded_solution):
+        return ListWrapper(list(decode_weights * encoded_solution))
+
+    optimizer = optimize.Optimizer()
+
+    # Test Optimizer._get_fitnesses
+    _check_get_fitnesses(fitness_func, decode_func, solution_size, optimizer=optimizer)
+
+    assert optimizer._Optimizer__decoded_cache == {}
 
 
 def test_Optimizer_get_fitnesses_disabled_encoded_cache():
@@ -204,7 +275,7 @@ def _check_get_fitnesses(fitness_func,
             solution_size)
 
         solutions, fitnesses, finished = optimizer._get_fitnesses(
-            problem, population, pool=pool)
+            problem, copy.deepcopy(population), pool=pool)
         # NOTE: _get_fitnesses will return None for solutions in cache, this is expected and ok
         assert False not in [
             solution == expected
