@@ -372,7 +372,12 @@ class Optimizer(object):
 
         # Evaluate all that need to be evaluated, and combine back into fitnesses list
         if decoded_keys is None:
-            to_eval_keys = None
+            if encoded_keys is None:
+                # No way to detect duplicates
+                to_eval_keys = None
+            else:
+                # Cannot use decoded keys, default to encoded keys
+                to_eval_keys = [encoded_keys[i] for i in to_eval_indices]
         else:
             to_eval_keys = [decoded_keys[i] for i in to_eval_indices]
 
