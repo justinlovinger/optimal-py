@@ -29,7 +29,7 @@ Copy the "optimal" folder to [python-path]/lib/site-packages
 		return x1, x2
 
 	# ackley is our fitness function
-	# This is how a user defines to goal of their problem
+	# This is how a user defines the goal of their problem
 	def ackley_fitness(solution):
 		x1, x2 = solution
 
@@ -73,6 +73,9 @@ Important notes:
 For further usage details, see comprehensive doc strings.
 
 # Major Changes
+## 08/27/2017
+Moved a number of options from Optimizer to Optimizer.optimize
+
 ## 07/26/2017
 Renamed common.random\_solution\_binary to common.random\_binary\_solution,
 and common.random\_solution\_real to common.random\_real\_solution

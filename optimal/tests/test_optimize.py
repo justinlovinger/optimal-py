@@ -183,12 +183,12 @@ def test_Optimizer_get_fitnesses_unhashable_solution():
     optimizer = optimize.Optimizer()
 
     # Test Optimizer._get_fitnesses
-    _check_get_fitnesses(fitness_func, decode_func, solution_size, optimizer=optimizer)
+    _check_get_fitnesses(fitness_func, decode_func, solution_size, optimizer=optimizer, cache_solution=True)
 
-    assert optimizer._Optimizer__decoded_cache == {}
+    assert optimizer._Optimizer__solution_cache == {}
 
 
-def test_Optimizer_get_fitnesses_disabled_encoded_cache():
+def test_Optimizer_get_fitnesses_cache_encoded_True_cache_solution_True():
     """Fitnesses should correspond to solutions."""
     # Fitness function is weighted summation of bits
     solution_size = random.randint(1, 50)
@@ -199,18 +199,48 @@ def test_Optimizer_get_fitnesses_disabled_encoded_cache():
 
     # Optimizer with disabled encoded cache
     optimizer = optimize.Optimizer()
-    optimizer.cache_encoded_solution = False
 
     # Test Optimizer._get_fitnesses
     _check_get_fitnesses(
-        fitness_func, lambda x: x, solution_size, optimizer=optimizer)
+        fitness_func,
+        lambda x: x,
+        solution_size,
+        optimizer=optimizer,
+        cache_encoded=True,
+        cache_solution=True)
+
+    # Check caches as expected
+    assert optimizer._Optimizer__encoded_cache != {}
+    assert optimizer._Optimizer__solution_cache != {}
+
+
+def test_Optimizer_get_fitnesses_cache_encoded_False_cache_solution_True():
+    """Fitnesses should correspond to solutions."""
+    # Fitness function is weighted summation of bits
+    solution_size = random.randint(1, 50)
+    weights = numpy.random.random(solution_size)
+
+    def fitness_func(solution):
+        return weights.dot(solution)
+
+    # Optimizer with disabled encoded cache
+    optimizer = optimize.Optimizer()
+
+    # Test Optimizer._get_fitnesses
+    _check_get_fitnesses(
+        fitness_func,
+        lambda x: x,
+        solution_size,
+        optimizer=optimizer,
+        cache_encoded=False,
+        cache_solution=True)
 
     # Check caches as expected
     assert optimizer._Optimizer__encoded_cache == {}
-    assert optimizer._Optimizer__decoded_cache != {}
+    assert optimizer._Optimizer__solution_cache != {}
 
 
-def test_Optimizer_get_fitnesses_disabled_decoded_cache():
+def test_Optimizer_get_fitnesses_cache_encoded_True_cache_solution_False():
     """Fitnesses should correspond to solutions."""
     # Fitness function is weighted summation of bits
     solution_size = random.randint(1, 50)
@@ -225,11 +255,43 @@ def test_Optimizer_get_fitnesses_disabled_decoded_cache():
 
     # Test Optimizer._get_fitnesses
     _check_get_fitnesses(
-        fitness_func, lambda x: x, solution_size, optimizer=optimizer)
+        fitness_func,
+        lambda x: x,
+        solution_size,
+        optimizer=optimizer,
+        cache_encoded=True,
+        cache_solution=False)
 
     # Check caches as expected
     assert optimizer._Optimizer__encoded_cache != {}
-    assert optimizer._Optimizer__decoded_cache == {}
+    assert optimizer._Optimizer__solution_cache == {}
+
+
+def test_Optimizer_get_fitnesses_cache_encoded_False_cache_solution_False():
+    """Fitnesses should correspond to solutions."""
+    # Fitness function is weighted summation of bits
+    solution_size = random.randint(1, 50)
+    weights = numpy.random.random(solution_size)
+
+    def fitness_func(solution):
+        return weights.dot(solution)
+
+    # Optimizer with disabled encoded cache
+    optimizer = optimize.Optimizer()
+    optimizer.cache_decoded_solution = False
+
+    # Test Optimizer._get_fitnesses
+    _check_get_fitnesses(
+        fitness_func,
+        lambda x: x,
+        solution_size,
+        optimizer=optimizer,
+        cache_encoded=False,
+        cache_solution=False)
+
+    # Check caches as expected
+    assert optimizer._Optimizer__encoded_cache == {}
+    assert optimizer._Optimizer__solution_cache == {}
 
 
 def test_Optimizer_get_fitnesses_with_pool():
@@ -254,7 +316,8 @@ def _check_get_fitnesses(fitness_func,
                          solution_size,
                          fitness_func_returns_finished=False,
                          optimizer=None,
-                         n_processes=0):
+                         n_processes=0,
+                         **kwargs):
     """Assert that return values of Optimizer._get_fitnesses are correct."""
     problem = Problem(fitness_func, decode_function=decode_func)
 
@@ -275,7 +338,7 @@ def _check_get_fitnesses(fitness_func,
             solution_size)
 
         solutions, fitnesses, finished = optimizer._get_fitnesses(
-            problem, copy.deepcopy(population), pool=pool)
+            problem, copy.deepcopy(population), pool=pool, **kwargs)
         # NOTE: _get_fitnesses will return None for solutions in cache, this is expected and ok
         assert False not in [
             solution == expected
@@ -310,7 +373,8 @@ def test_Optimizer_encoded_cache_correct():
     problem = Problem(fitness_func)
 
     # Test cache
-    optimizer._get_fitnesses(problem, [[0, 0], [0, 1], [1, 0], [1, 1]])
+    optimizer._get_fitnesses(
+        problem, [[0, 0], [0, 1], [1, 0], [1, 1]], cache_encoded=True)
     assert optimizer._Optimizer__encoded_cache == {
         (0, 0): 0,
         (0, 1): 0.5,
@@ -319,7 +383,7 @@ def test_Optimizer_encoded_cache_correct():
     }
 
 
-def test_Optimizer_decoded_cache_correct():
+def test_Optimizer_solution_cache_correct():
     """Should map the correct key to fitness."""
     optimizer = optimize.Optimizer()
 
@@ -332,8 +396,9 @@ def test_Optimizer_decoded_cache_correct():
     problem = Problem(fitness_func, decode_function=decode_func)
 
     # Test cache
-    optimizer._get_fitnesses(problem, [[0, 0], [0, 1], [1, 0], [1, 1]])
-    assert optimizer._Optimizer__decoded_cache == {
+    optimizer._get_fitnesses(
+        problem, [[0, 0], [0, 1], [1, 0], [1, 1]], cache_solution=True)
+    assert optimizer._Optimizer__solution_cache == {
         (0, 0): 0,
         (0, -1): -0.5,
         (-1, 0): -1.0,
@@ -341,62 +406,64 @@ def test_Optimizer_decoded_cache_correct():
     }
 
 
-def test_Optimizer_get_decoded_key():
+def test_Optimizer_get_solution_key():
     # Hashable
     optimizer = optimize.Optimizer()
-    optimizer._get_decoded_key('1') == '1'
+    optimizer._get_solution_key('1') == '1'
 
     # Dict
     # NOTE: This requires special treatment, otherwise,
     # tuple(dict) will return a tuple of the KEYS only
     optimizer = optimize.Optimizer()
-    optimizer._get_decoded_key({'a': '1'}) == tuple([('a', '1')])
+    optimizer._get_solution_key({'a': '1'}) == tuple([('a', '1')])
 
     # Tupleable
     optimizer = optimize.Optimizer()
-    optimizer._get_decoded_key(['1']) == tuple(['1'])
+    optimizer._get_solution_key(['1']) == tuple(['1'])
 
     # Stringable
     optimizer = optimize.Optimizer()
-    optimizer._get_decoded_key([['1']]) == str([['1']])
+    optimizer._get_solution_key([['1']]) == str([['1']])
 
 
-def test_Optimizer_cache_encoded_solution_false():
+def test_Optimizer_optimize_cache_encoded_False_cache_solution_True():
     """Should only cache encoded solutions if True."""
     # After calling Optimizer._get_fitnesses
     # __encoded_cache should be empty
-    # __decoded_cache should not
-    optimizer = optimize.Optimizer()
-    optimizer.cache_encoded_solution = False
-    assert optimizer.cache_decoded_solution is True
+    # __solution_cache should not
+    optimizer = GenAlg(2)
 
-    # Get fitnesses
-    population = common.make_population(
-        random.randint(1, 20), common.random_binary_solution, 2)
-    optimizer._get_fitnesses(SIMPLE_PROBLEM, population)
+    # Optimize
+    optimizer.optimize(
+        SIMPLE_PROBLEM,
+        max_iterations=1,
+        cache_encoded=False,
+        cache_solution=True,
+        clear_cache=False)
 
     # Assert caches as expected
     assert optimizer._Optimizer__encoded_cache == {}
-    assert optimizer._Optimizer__decoded_cache != {}
+    assert optimizer._Optimizer__solution_cache != {}
 
 
-def test_Optimizer_cache_decoded_solution_false():
+def test_Optimizer_optimize_cache_encoded_True_cache_solution_False():
     """Should only cache decoded solutions if True."""
     # After calling Optimizer._get_fitnesses
     # __encoded_cache should not be empty
-    # __decoded_cache should be empty
-    optimizer = optimize.Optimizer()
-    assert optimizer.cache_encoded_solution is True
-    optimizer.cache_decoded_solution = False
+    # __solution_cache should be empty
+    optimizer = GenAlg(2)
 
     # Get fitnesses
-    population = common.make_population(
-        random.randint(1, 20), common.random_binary_solution, 2)
-    optimizer._get_fitnesses(SIMPLE_PROBLEM, population)
+    optimizer.optimize(
+        SIMPLE_PROBLEM,
+        max_iterations=1,
+        cache_encoded=True,
+        cache_solution=False,
+        clear_cache=False)
 
     # Assert caches as expected
     assert optimizer._Optimizer__encoded_cache != {}
-    assert optimizer._Optimizer__decoded_cache == {}
+    assert optimizer._Optimizer__solution_cache == {}
 
 
 ####################################

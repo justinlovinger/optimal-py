@@ -46,6 +46,18 @@ def _identity(x):
     return x
 
 
+def _print_fitnesses(iteration,
+                     population,
+                     solutions,
+                     fitnesses,
+                     best_solution,
+                     best_fitness,
+                     frequency=1):
+    if iteration == 1 or iteration % frequency == 0:
+        print 'Iteration: %s\nAvg Fitness: %s\nBest Fitness: %s' % (
+            iteration, (sum(fitnesses) / len(fitnesses)), best_fitness)
+
+
 class Problem(object):
     """The problem to solve.
 
@@ -138,19 +150,10 @@ class Optimizer(object):
         # Parameters for metaheuristic optimization
         self._hyperparameters = {}
 
-        # Enable logging by default
-        self.logging = True
-        self._logging_func = _print_fitnesses
-
         # Set caching parameters
-        # NOTE: Disabling caching also disables corresponding duplicate detection
-        # Resulting in duplicate solutions being decoded and evaluated
-        self.cache_encoded_solution = True
-        self.cache_decoded_solution = True
-        self.clear_cache = True
         self.__encoded_cache = {}
-        self.__decoded_cache = {}
-        self._get_decoded_key = self._get_decoded_key_type
+        self.__solution_cache = {}
+        self._get_solution_key = self._get_solution_key_type
 
         # Bookkeeping
         self.iteration = 0
@@ -189,12 +192,30 @@ class Optimizer(object):
         """
         raise NotImplementedError("new_population is not implemented.")
 
-    def optimize(self, problem, max_iterations=100, n_processes=0):
+    def optimize(self, problem, max_iterations=100,
+                 cache_encoded=True, cache_solution=False, clear_cache=True,
+                 logging_func=_print_fitnesses,
+                 n_processes=0):
         """Find the optimal inputs for a given fitness function.
 
         Args:
             problem: An instance of Problem. The problem to solve.
             max_iterations: The number of iterations to optimize before stopping.
+            cache_encoded: bool; Whether or not to cache fitness of encoded strings.
+                Encoded strings are produced directly by the optimizer.
+                If an encoded string is found in cache, it will not be decoded.
+            cache_solution: bool; Whether or not to cache fitness of decoded solutions.
+                Decoded solution is provided by problems decode function.
+                If problem does not provide a hash solution function,
+                Various naive hashing methods will be attempted, including:
+                    tuple, tuple(sorted(dict.items)), str.
+            clear_cache: bool; Whether or not to reset cache after optimization.
+                Disable if you want to run optimize multiple times on the same problem.
+            logging_func: func/None; Function taking:
+                iteration, population, solutions, fitnesses, best_solution, best_fitness
+                Called after every iteration.
+                Use for custom logging, or set to None to disable logging.
+                Note that best_solution and best_fitness are the best of all iterations so far.
             n_processes: int; Number of processes to use for multiprocessing.
                 If <= 0, do not use multiprocessing.
 
@@ -228,7 +249,11 @@ class Optimizer(object):
             for self.iteration in range(1, self._max_iterations + 1):
                 # Evaluate potential solutions
                 solutions, fitnesses, finished = self._get_fitnesses(
-                    problem, population, pool=pool)
+                    problem,
+                    population,
+                    cache_encoded=cache_encoded,
+                    cache_solution=cache_solution,
+                    pool=pool)
 
                 # If the best fitness from this iteration is better than
                 # the global best
@@ -239,9 +264,10 @@ class Optimizer(object):
                     best_solution['fitness'] = best_fitness
                     best_solution['solution'] = solutions[best_index]
 
-                if self.logging and self._logging_func:
-                    self._logging_func(self.iteration, fitnesses,
-                                       best_solution)
+                if logging_func:
+                    logging_func(self.iteration, population, solutions,
+                                 fitnesses, best_solution['solution'],
+                                 best_solution['fitness'])
 
                 if finished:
                     self.solution_found = True
@@ -256,18 +282,18 @@ class Optimizer(object):
 
         finally:
             # Clear caches
-            if self.clear_cache:
+            if clear_cache:
                 # Clear caches from memory
                 self.__encoded_cache = {}
-                self.__decoded_cache = {}
+                self.__solution_cache = {}
 
                 # Reset decoded cache key
-                self._get_decoded_key = self._get_decoded_key_type
+                self._get_solution_key = self._get_solution_key_type
 
             # Clean up multiprocesses
             try:
                 pool.terminate()  # Kill outstanding work
-                pool.close()  # Close the child processes
+                pool.close()  # Close child processes
             except AttributeError:
                 # No pool
                 assert pool is None
@@ -289,7 +315,12 @@ class Optimizer(object):
         self.best_fitness = None
         self.solution_found = False
 
-    def _get_fitnesses(self, problem, population, pool=None):
+    def _get_fitnesses(self,
+                       problem,
+                       population,
+                       cache_encoded=True,
+                       cache_solution=False,
+                       pool=None):
         """Get the fitness for every solution in a population.
 
         Args:
@@ -303,7 +334,7 @@ class Optimizer(object):
         #############################
         # Decoding
         #############################
-        if self.cache_encoded_solution:
+        if cache_encoded:
             encoded_keys = map(tuple, population)
 
             # Get all fitnesses from encoded_solution cache
@@ -339,7 +370,7 @@ class Optimizer(object):
         #############################
         # Evaluating
         #############################
-        if self.cache_decoded_solution:
+        if cache_solution:
             try:
                 # Try to make solutions hashable
                 # Use user provided hash function if available
@@ -347,31 +378,31 @@ class Optimizer(object):
                     hash_solution_func = problem.hash_solution
                 else:
                     # Otherwise, default to built in "smart" hash function
-                    hash_solution_func = self._get_decoded_key
-                decoded_keys = [
+                    hash_solution_func = self._get_solution_key
+                solution_keys = [
                     hash_solution_func(solution)
                     # None corresponds to encoded_solutions found in cache
                     if solution is not None else None for solution in solutions
                 ]
 
-                # Get all fitnesses from decoded_solution cache
+                # Get all fitnesses from solution cache
                 to_eval_indices = []
-                for i, decoded_key in enumerate(decoded_keys):
-                    if decoded_key is not None:  # Otherwise, fitness already found in encoded cache
+                for i, solution_key in enumerate(solution_keys):
+                    if solution_key is not None:  # Otherwise, fitness already found in encoded cache
                         try:
-                            fitnesses[i] = self.__decoded_cache[decoded_key]
+                            fitnesses[i] = self.__solution_cache[solution_key]
                         except KeyError:  # Cache miss
                             to_eval_indices.append(i)
 
             except UnhashableError:  # Cannot hash solution
-                decoded_keys = None
+                solution_keys = None
                 to_eval_indices = to_decode_indices[:]
         else:
-            decoded_keys = None
+            solution_keys = None
             to_eval_indices = to_decode_indices[:]
 
         # Evaluate all that need to be evaluated, and combine back into fitnesses list
-        if decoded_keys is None:
+        if solution_keys is None:
             if encoded_keys is None:
                 # No way to detect duplicates
                 to_eval_keys = None
@@ -379,7 +410,7 @@ class Optimizer(object):
                 # Cannot use decoded keys, default to encoded keys
                 to_eval_keys = [encoded_keys[i] for i in to_eval_indices]
         else:
-            to_eval_keys = [decoded_keys[i] for i in to_eval_indices]
+            to_eval_keys = [solution_keys[i] for i in to_eval_indices]
 
         finished = False
         eval_bookkeeping = {}
@@ -408,12 +439,12 @@ class Optimizer(object):
         self.fitness_runs += len(eval_bookkeeping['key_indices'])  # Evaled once for each unique key
 
         # Add evaluated fitnesses to caches (both of them)
-        if self.cache_encoded_solution:
+        if cache_encoded and encoded_keys is not None:
             for i in to_decode_indices:  # Encoded cache misses
                 self.__encoded_cache[encoded_keys[i]] = fitnesses[i]
-        if self.cache_decoded_solution and decoded_keys is not None:
+        if cache_solution and solution_keys is not None:
             for i in to_eval_indices:  # Decoded cache misses
-                self.__decoded_cache[decoded_keys[i]] = fitnesses[i]
+                self.__solution_cache[solution_keys[i]] = fitnesses[i]
 
         # Return
         # assert None not in fitnesses  # Un-comment for debugging
@@ -461,11 +492,11 @@ class Optimizer(object):
 
         return all_results
 
-    def _get_decoded_key_type(self, solution):
+    def _get_solution_key_type(self, solution):
         # Start by just trying to hash it
         try:
             {solution: None}
-            self._get_decoded_key = self._get_decoded_key_simple
+            self._get_solution_key = self._get_solution_key_simple
         except:
             # Not hashable
             # Try tuple
@@ -473,38 +504,38 @@ class Optimizer(object):
             # Before trying tuple, check if dict
             # tuple(dict) will return a tuple of the KEYS only
             if isinstance(solution, dict):
-                self._get_decoded_key = self._get_decoded_key_dict
+                self._get_solution_key = self._get_solution_key_dict
             else:
                 # Not dict, try tuple
                 try:
                     {tuple(solution): None}
-                    self._get_decoded_key = self._get_decoded_key_tuple
+                    self._get_solution_key = self._get_solution_key_tuple
                 except:
                     # Cannot convert to tuple
                     # Try str
                     try:
                         {str(solution): None}
-                        self._get_decoded_key = self._get_decoded_key_str
+                        self._get_solution_key = self._get_solution_key_str
                     except:
                         # Nothing works, give up
-                        self._get_decoded_key = self._get_decoded_key_none
+                        self._get_solution_key = self._get_solution_key_none
 
         # Done discovering, return key
-        return self._get_decoded_key(solution)
+        return self._get_solution_key(solution)
 
-    def _get_decoded_key_simple(self, solution):
+    def _get_solution_key_simple(self, solution):
         return solution
 
-    def _get_decoded_key_tuple(self, solution):
+    def _get_solution_key_tuple(self, solution):
         return tuple(solution)
 
-    def _get_decoded_key_str(self, solution):
+    def _get_solution_key_str(self, solution):
         return str(solution)
 
-    def _get_decoded_key_dict(self, solution):
+    def _get_solution_key_dict(self, solution):
         return tuple(solution.items())
 
-    def _get_decoded_key_none(self, solution):
+    def _get_solution_key_none(self, solution):
         raise UnhashableError()
 
     def _set_hyperparameters(self, parameters):
@@ -641,13 +672,6 @@ class StandardOptimizer(Optimizer):
             'min': 2,
             'max': 1026
         }
-
-
-def _print_fitnesses(iteration, fitnesses, best_solution, frequency=1):
-    if iteration == 1 or iteration % frequency == 0:
-        print 'Iteration: ' + str(iteration)
-        print 'Avg Fitness: ' + str(sum(fitnesses) / len(fitnesses))
-        print 'Best Fitness: ' + str(best_solution['fitness'])
 
 
 def _duplicates(list_):

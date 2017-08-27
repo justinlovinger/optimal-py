@@ -86,8 +86,13 @@ def _add_mean_sd_to_stats(stats, key='runs'):
     stats['standard_deviation'] = standard_deviation
 
 
-def benchmark(optimizer, problem, max_iterations=100, runs=20):
+def benchmark(optimizer, problem, runs=20, **kwargs):
     """Run an optimizer through a problem multiple times.
+
+    Args:
+        optimizer: Optimizer; The optimizer to benchmark.
+        problem: Problem; The problem to benchmark on.
+        runs: int > 0; Number of times that optimize is called on problem.
 
     Returns:
         dict; A dictionary of various statistics.
@@ -95,14 +100,15 @@ def benchmark(optimizer, problem, max_iterations=100, runs=20):
     stats = {'runs': []}
 
     # Disable logging, to avoid spamming the user
-    logging = optimizer.logging
-    optimizer.logging = False
+    # TODO: Maybe we shouldn't disable by default?
+    kwargs = copy.copy(kwargs)
+    kwargs['logging_func'] = None
 
     # Determine effectiveness of metaheuristic over many runs
     # The stochastic nature of metaheuristics make this necessary
     # for an accurate evaluation
     for _ in range(runs):
-        optimizer.optimize(problem, max_iterations=max_iterations)
+        optimizer.optimize(problem, **kwargs)
 
         # Convert bool to number for mean and standard deviation calculations
         if optimizer.solution_found:
@@ -124,13 +130,10 @@ def benchmark(optimizer, problem, max_iterations=100, runs=20):
     # Standard deviation (SD) shows consistency of performance
     _add_mean_sd_to_stats(stats)
 
-    # Bring back the users logging option for their optimizer
-    optimizer.logging = logging
-
     return stats
 
 
-def compare(optimizers, problems, all_max_iterations=100, runs=20):
+def compare(optimizers, problems, runs=20, all_kwargs={}):
     """Compare a set of optimizers.
 
     Args:
@@ -138,8 +141,8 @@ def compare(optimizers, problems, all_max_iterations=100, runs=20):
             or a single optimizer to test on each problem.
         problems: list/Problem; Either a problem instance or a list of problem instances,
             one for each optimizer.
-        all_max_iterations: list/int; Either the max iterations for all optimizers,
-            or a list of max iterations, one for each optimizer.
+        all_kwargs: dict/list<dict>; Either the Optimizer.optimize keyword arguments
+            for all optimizers, or a list of keyword arguments, one for each optimizer.
         runs: int; How many times to run each optimizer (smoothness)
 
     Returns:
@@ -158,13 +161,14 @@ def compare(optimizers, problems, all_max_iterations=100, runs=20):
         problems = [copy.deepcopy(problems) for _ in range(len(optimizers))]
 
     # If max_iterations is an integer, repeat it into a list
-    if not isinstance(all_max_iterations, collections.Iterable):
-        all_max_iterations = [all_max_iterations] * len(optimizers)
+    if isinstance(all_kwargs, dict):
+        all_kwargs = [all_kwargs] * len(optimizers)
+    elif not isinstance(problems, collections.Iterable):
+        raise TypeError('all_kwargs must be dict of list of dict')
 
     stats = {}
     key_counts = {}
-    for optimizer, problem, max_iterations in zip(optimizers, problems,
-                                                  all_max_iterations):
+    for optimizer, problem, kwargs in zip(optimizers, problems, all_kwargs):
         # For nice human readable dictionaries, extract useful names from
         # optimizer
         class_name = optimizer.__class__.__name__
@@ -184,8 +188,7 @@ def compare(optimizers, problems, all_max_iterations=100, runs=20):
         print key + ': ',
 
         # Finally, get the actual stats
-        stats[key] = benchmark(
-            optimizer, problem, max_iterations=max_iterations, runs=runs)
+        stats[key] = benchmark(optimizer, problem, runs=runs, **kwargs)
 
         print
 
