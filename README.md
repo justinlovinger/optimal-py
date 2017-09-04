@@ -10,7 +10,7 @@ Supported metaheuristics:
 * Cross entropy (CE)
 
 # Installation
-Copy the "optimal" folder to [python-path]/lib/site-packages
+    pip install optimal
 
 # Usage
 	import math
