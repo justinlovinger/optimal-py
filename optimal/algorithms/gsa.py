@@ -51,9 +51,9 @@ class GSA(optimize.StandardOptimizer):
         Args:
             solution_size: The number of real values in each solution.
             lower_bounds: list, each value is a lower bound for the corresponding
-                          part of the solution.
+                          component of the solution.
             upper_bounds: list, each value is a upper bound for the corresponding
-                          part of the solution.
+                          component of the solution.
             population_size: The number of potential solutions in every generation
             grav_initial: Initial value for grav parameter (0 - 1)
             grav_reduction_rate: Rate that grav parameter decreases over time (0 - 1)
