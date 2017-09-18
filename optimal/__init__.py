@@ -28,7 +28,7 @@ from optimal.algorithms.genalg import GenAlg
 
 from optimal.algorithms.gsa import GSA
 from optimal.algorithms.crossentropy import CrossEntropy
-from optimal.algorithms.randomopt import RandomBinary, RandomReal
+from optimal.algorithms.baseline import RandomBinary, RandomReal, ExhaustiveBinary
 
 # Necessary classes
 from optimal.optimize import Problem
