@@ -153,6 +153,7 @@ class Optimizer(object):
         # Set caching parameters
         self.__encoded_cache = {}
         self.__solution_cache = {}
+        self._get_encoded_key = self._get_encoded_key_type
         self._get_solution_key = self._get_solution_key_type
 
         # Bookkeeping
@@ -287,7 +288,8 @@ class Optimizer(object):
                 self.__encoded_cache = {}
                 self.__solution_cache = {}
 
-                # Reset decoded cache key
+                # Reset encoded, and decoded key functions
+                self._get_encoded_key = self._get_encoded_key_type
                 self._get_solution_key = self._get_solution_key_type
 
             # Clean up multiprocesses
@@ -335,18 +337,23 @@ class Optimizer(object):
         # Decoding
         #############################
         if cache_encoded:
-            encoded_keys = map(tuple, population)
+            try:
+                encoded_keys = map(self._get_encoded_key, population)
 
-            # Get all fitnesses from encoded_solution cache
-            to_decode_indices = []
-            for i, encoded_key in enumerate(encoded_keys):
-                try:
-                    fitnesses[i] = self.__encoded_cache[encoded_key]
-                    # Note that this fitness will never be better than the current best
-                    # because we have already evaluted it,
-                    # Therefore, we do not need to worry about decoding the solution
-                except KeyError:  # Cache miss
-                    to_decode_indices.append(i)
+                # Get all fitnesses from encoded_solution cache
+                to_decode_indices = []
+                for i, encoded_key in enumerate(encoded_keys):
+                    try:
+                        fitnesses[i] = self.__encoded_cache[encoded_key]
+                        # Note that this fitness will never be better than the current best
+                        # because we have already evaluted it,
+                        # Therefore, we do not need to worry about decoding the solution
+                    except KeyError:  # Cache miss
+                        to_decode_indices.append(i)
+
+            except UnhashableError:  # Cannot hash encoded solution
+                encoded_keys = None
+                to_decode_indices = range(len(population))
         else:
             encoded_keys = None
             to_decode_indices = range(len(population))
@@ -379,6 +386,7 @@ class Optimizer(object):
                 else:
                     # Otherwise, default to built in "smart" hash function
                     hash_solution_func = self._get_solution_key
+
                 solution_keys = [
                     hash_solution_func(solution)
                     # None corresponds to encoded_solutions found in cache
@@ -492,51 +500,19 @@ class Optimizer(object):
 
         return all_results
 
-    def _get_solution_key_type(self, solution):
-        # Start by just trying to hash it
-        try:
-            {solution: None}
-            self._get_solution_key = self._get_solution_key_simple
-        except:
-            # Not hashable
-            # Try tuple
+    def _get_encoded_key_type(self, encoded_solution):
+        # First, find the right function to turn encoded_solution into key
+        self._get_encoded_key = _get_key_func(encoded_solution)
 
-            # Before trying tuple, check if dict
-            # tuple(dict) will return a tuple of the KEYS only
-            if isinstance(solution, dict):
-                self._get_solution_key = self._get_solution_key_dict
-            else:
-                # Not dict, try tuple
-                try:
-                    {tuple(solution): None}
-                    self._get_solution_key = self._get_solution_key_tuple
-                except:
-                    # Cannot convert to tuple
-                    # Try str
-                    try:
-                        {str(solution): None}
-                        self._get_solution_key = self._get_solution_key_str
-                    except:
-                        # Nothing works, give up
-                        self._get_solution_key = self._get_solution_key_none
+        # Done discovering, return key
+        return self._get_encoded_key(encoded_solution)
+
+    def _get_solution_key_type(self, solution):
+        # First, find the right function to turn solution into key
+        self._get_solution_key = _get_key_func(solution)
 
         # Done discovering, return key
         return self._get_solution_key(solution)
-
-    def _get_solution_key_simple(self, solution):
-        return solution
-
-    def _get_solution_key_tuple(self, solution):
-        return tuple(solution)
-
-    def _get_solution_key_str(self, solution):
-        return str(solution)
-
-    def _get_solution_key_dict(self, solution):
-        return tuple(solution.items())
-
-    def _get_solution_key_none(self, solution):
-        raise UnhashableError()
 
     def _set_hyperparameters(self, parameters):
         """Set internal optimization parameters."""
@@ -648,6 +624,55 @@ class Optimizer(object):
 
         # And return
         return best_parameters
+
+
+def _get_key_func(item):
+    # Start by just trying to hash it
+    try:
+        {item: None}
+        return _get_key_identity
+    except:
+        # Not hashable
+        # Try tuple
+
+        # Before trying tuple, check if dict
+        # tuple(dict) will return a tuple of the KEYS only
+        if isinstance(item, dict):
+            return _get_key_dict
+        else:
+            # Not dict, try tuple
+            try:
+                {tuple(item): None}
+                return _get_key_tuple
+            except:
+                # Cannot convert to tuple
+                # Try str
+                try:
+                    {str(item): None}
+                    return _get_key_str
+                except:
+                    # Nothing works, give up
+                    return _get_key_none
+
+
+def _get_key_identity(solution):
+    return solution
+
+
+def _get_key_tuple(solution):
+    return tuple(solution)
+
+
+def _get_key_str(solution):
+    return str(solution)
+
+
+def _get_key_dict(solution):
+    return tuple(solution.items())
+
+
+def _get_key_none(solution):
+    raise UnhashableError()
 
 
 class StandardOptimizer(Optimizer):
