@@ -21,15 +21,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ###############################################################################
+import random
 
-# All algorithms
-from optimal.algorithms import gaoperators  # Also operators for GA
-from optimal.algorithms.genalg import GenAlg
+import numpy
 
-from optimal.algorithms.gsa import GSA
-from optimal.algorithms.crossentropy import CrossEntropy
-from optimal.algorithms.pbil import PBIL
-from optimal.algorithms.baseline import RandomBinary, RandomReal, ExhaustiveBinary
+from optimal import PBIL, problems
+from optimal.algorithms import pbil
 
-# Necessary classes
-from optimal.optimize import Problem
+
+def test_PBIL_sphere():
+    optimizer = PBIL(32, population_size=20)
+    optimizer.optimize(problems.sphere_binary, max_iterations=1000)
+    assert optimizer.solution_found
+
+
+def test_sample():
+    """Mean outcomes should match probabilities."""
+    probability_vec = numpy.random.random(random.randint(2, 10))
+    assert (numpy.abs(
+        numpy.mean(
+            [pbil._sample(probability_vec)
+             for _ in range(10000)], axis=0) - probability_vec) <= 1e-2).all()

@@ -8,6 +8,7 @@ Supported metaheuristics:
 * Genetic algorithms (GA)
 * Gravitational search algorithm (GSA)
 * Cross entropy (CE)
+* Population-based incremental learning (PBIL)
 
 # Installation
     pip install optimal
