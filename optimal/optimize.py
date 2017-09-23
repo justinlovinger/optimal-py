@@ -27,6 +27,8 @@ import copy
 import operator
 import collections
 import functools
+import itertools
+import time
 try:
     import pickle
     import dill
@@ -193,7 +195,7 @@ class Optimizer(object):
         """
         raise NotImplementedError("new_population is not implemented.")
 
-    def optimize(self, problem, max_iterations=100,
+    def optimize(self, problem, max_iterations=100, max_seconds=float('inf'),
                  cache_encoded=True, cache_solution=False, clear_cache=True,
                  logging_func=_print_fitnesses,
                  n_processes=0):
@@ -202,6 +204,10 @@ class Optimizer(object):
         Args:
             problem: An instance of Problem. The problem to solve.
             max_iterations: The number of iterations to optimize before stopping.
+            max_seconds: Maximum number of seconds to optimize for, before stopping.
+                Note that condition is only checked one per iteration,
+                meaning optimization can take more than max_seconds,
+                especially if fitnesses take a long time to calculate.
             cache_encoded: bool; Whether or not to cache fitness of encoded strings.
                 Encoded strings are produced directly by the optimizer.
                 If an encoded string is found in cache, it will not be decoded.
@@ -247,7 +253,8 @@ class Optimizer(object):
         population = self.initial_population()
         try:
             # Begin optimization loop
-            for self.iteration in range(1, self._max_iterations + 1):
+            start = time.clock()
+            for self.iteration in itertools.count(1):  # Infinite sequence of iterations
                 # Evaluate potential solutions
                 solutions, fitnesses, finished = self._get_fitnesses(
                     problem,
@@ -270,8 +277,17 @@ class Optimizer(object):
                                  fitnesses, best_solution['solution'],
                                  best_solution['fitness'])
 
+                # Break if solution found
                 if finished:
                     self.solution_found = True
+                    break
+
+                # Break if out of time
+                if time.clock() - start >= max_seconds:
+                    break
+
+                # Break if out of iterations
+                if self.iteration >= max_iterations:
                     break
 
                 # Continue optimizing

@@ -31,7 +31,7 @@ import numpy
 
 import pytest
 
-from optimal import optimize, common, GenAlg, Problem
+from optimal import optimize, common, GenAlg, Problem, problems
 
 
 def simple_function(binary):
@@ -57,12 +57,33 @@ def test_Problem_copy():
 
 
 ###############################
-# Optimizer
+# Optimizer.optimize
 ###############################
 def test_Optimizer_optimize_parallel():
     optimzier = GenAlg(2)
     optimzier.optimize(SIMPLE_PROBLEM, n_processes=random.randint(2, 4))
     assert optimzier.solution_found
+
+
+def test_Optimizer_optimize_solution_correct():
+    optimizer = GenAlg(2)
+    assert optimizer.optimize(SIMPLE_PROBLEM) == [1, 1]
+
+
+def test_Optimizer_optimize_sphere_max_iterations():
+    optimizer = GenAlg(32, population_size=10)
+    optimizer.optimize(
+        problems.sphere_binary, max_iterations=100,
+        max_seconds=float('inf'))
+    assert optimizer.solution_found
+
+
+def test_Optimizer_optimize_sphere_max_seconds():
+    optimizer = GenAlg(32, population_size=10)
+    optimizer.optimize(
+        problems.sphere_binary, max_iterations=float('inf'),
+        max_seconds=10)
+    assert optimizer.solution_found
 
 
 ###############################
@@ -183,7 +204,12 @@ def test_Optimizer_get_fitnesses_unhashable_solution():
     optimizer = optimize.Optimizer()
 
     # Test Optimizer._get_fitnesses
-    _check_get_fitnesses(fitness_func, decode_func, solution_size, optimizer=optimizer, cache_solution=True)
+    _check_get_fitnesses(
+        fitness_func,
+        decode_func,
+        solution_size,
+        optimizer=optimizer,
+        cache_solution=True)
 
     assert optimizer._Optimizer__solution_cache == {}
 
@@ -464,14 +490,6 @@ def test_Optimizer_optimize_cache_encoded_True_cache_solution_False():
     # Assert caches as expected
     assert optimizer._Optimizer__encoded_cache != {}
     assert optimizer._Optimizer__solution_cache == {}
-
-
-####################################
-# Integration
-####################################
-def test_Optimizer_optimize_solution_correct():
-    optimizer = GenAlg(2)
-    assert optimizer.optimize(SIMPLE_PROBLEM) == [1, 1]
 
 
 ####################################
