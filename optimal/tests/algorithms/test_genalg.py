@@ -85,8 +85,10 @@ def test_genalg_sphere_stochastic_selection():
 
 
 def _check_optimizer(optimizer):
-    optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
-    optimizer.optimize(problems.sphere_binary)
+    optimizer.optimize(
+        problems.sphere_binary,
+        logging_func=
+        lambda *args: optimize._print_fitnesses(*args, frequency=100))
     assert optimizer.solution_found
 
 
@@ -95,8 +97,10 @@ def test_genalg_problems():
     # Attempt to solve various problems
     # Assert that the optimizer can find the solutions
     optimizer = GenAlg(32)
-    optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
-    optimizer.optimize(problems.ackley_binary)
+    optimizer.optimize(
+        problems.ackley_binary,
+        logging_func=
+        lambda *args: optimize._print_fitnesses(*args, frequency=100))
     assert optimizer.solution_found
 
     # TODO: test other functions
@@ -108,7 +112,6 @@ def test_genalg_problems():
 @pytest.mark.slowtest()
 def test_metaoptimize_genalg():
     optimizer = GenAlg(32)
-    optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
     prev_hyperparameters = optimizer._get_hyperparameters()
 
     # Test without metaoptimize, save iterations to solution

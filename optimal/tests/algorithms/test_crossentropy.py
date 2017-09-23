@@ -78,8 +78,11 @@ def test_best_pdf():
 
 def test_crossentropy_sphere():
     optimizer = crossentropy.CrossEntropy(32, population_size=20)
-    optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
-    optimizer.optimize(problems.sphere_binary, max_iterations=1000)
+    optimizer.optimize(
+        problems.sphere_binary,
+        max_iterations=1000,
+        logging_func=
+        lambda *args: optimize._print_fitnesses(*args, frequency=100))
     assert optimizer.solution_found
 
 
@@ -89,9 +92,11 @@ def test_crossentropy_problems():
     # Assert that the optimizer can find the solutions
     # NOTE: since crossentropy is not very effective, we give it simpler problems
     optimizer = crossentropy.CrossEntropy(32, population_size=20)
-    optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
-    optimizer.optimize(problems.sphere_binary, max_iterations=1000)
-    print 1.0 / optimizer.best_fitness
+    optimizer.optimize(
+        problems.sphere_binary,
+        max_iterations=1000,
+        logging_func=
+        lambda *args: optimize._print_fitnesses(*args, frequency=100))
     assert optimizer.solution_found
 
     # TODO: test other functions
@@ -100,7 +105,6 @@ def test_crossentropy_problems():
 @pytest.mark.slowtest()
 def test_metaoptimize_crossentropy():
     optimizer = crossentropy.CrossEntropy(32)
-    optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
     prev_hyperparameters = optimizer._get_hyperparameters()
 
     # Test without metaoptimize, save iterations to solution

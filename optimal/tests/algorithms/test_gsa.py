@@ -29,8 +29,11 @@ from optimal import GSA, GenAlg, problems, optimize
 
 def test_gsa_sphere():
     optimizer = GSA(2, [-5.0] * 2, [5.0] * 2)
-    optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
-    optimizer.optimize(problems.sphere_real, max_iterations=1000)
+    optimizer.optimize(
+        problems.sphere_real,
+        max_iterations=1000,
+        logging_func=
+        lambda *args: optimize._print_fitnesses(*args, frequency=100))
     assert optimizer.solution_found
 
 
@@ -39,8 +42,11 @@ def test_gsa_problems():
     # Attempt to solve various problems
     # Assert that the optimizer can find the solutions
     optimizer = GSA(2, [-5.0] * 2, [5.0] * 2)
-    optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
-    optimizer.optimize(problems.ackley_real, max_iterations=1000)
+    optimizer.optimize(
+        problems.ackley_real,
+        max_iterations=1000,
+        logging_func=
+        lambda *args: optimize._print_fitnesses(*args, frequency=100))
     assert optimizer.solution_found
 
     # TODO: test other functions
@@ -49,7 +55,6 @@ def test_gsa_problems():
 @pytest.mark.slowtest()
 def test_metaoptimize_gsa():
     optimizer = GSA(2, [-5.0] * 2, [5.0] * 2)
-    optimizer._logging_func = lambda x, y, z : optimize._print_fitnesses(x, y, z, frequency=100)
     prev_hyperparameters = optimizer._get_hyperparameters()
 
     # Test without metaoptimize, save iterations to solution
