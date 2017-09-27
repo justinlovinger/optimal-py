@@ -26,67 +26,88 @@
 import math
 
 
-def binary_to_int(binary_list, offset=0, upper_bound=None):
-    """Takes a list of binary values, returns a integer representation.
-
-   The maximum value is determined by the number of bits in binary_list,
-   and the offset.
-
-    Args:
-        Offset: The lowest value that can be return (if binary list is all 0s).
-
-    Returns:
-        int; Integer value of the binary input.
-    """
-
-    # Convert the binary to an integer
-    # First convert the list of binary values into a string
-    binary_string = ''.join([str(bit) for bit in binary_list])
-    integer = int(binary_string,
-                  2)  # Convert the base 2 string into an integer
-
-    value = integer + offset
-
-    # Trim if necessary
-    if (upper_bound is not None) and value > upper_bound:
-        # Bounce back. Ex. w/ upper_bound=2: [0, 1, 2, 2, 1, 0]
-        return upper_bound - ((value - offset) % (upper_bound - offset + 1))
-
-    return value
+def binary_size(num_values):
+    """Return the min number of bits to represet num_values."""
+    return int(math.ceil(math.log(num_values, 2)))
 
 
-def binary_to_float(binary_list, minimum, maximum):
-    """Takes a list of binary values, returns a float representation.
+def binary_to_float(binary_list, lower_bound, upper_bound):
+    """Return a floating point number between lower and upper bounds, from binary.
 
     Args:
-        minimum: The lowest value that can be return (if binary list is all 0s).
-        maximum: The highest value that can be returned (if binary list is all 1s).
+        binary_list: list<int>; List of 0s and 1s.
+            The number of bits in this list determine the number of possible
+            values between lower and upper bound.
+            Increase the size of binary_list for more precise floating points.
+        lower_bound: The lowest value that can be return (if binary list is all 0s).
+        upper_bound: The highest value that can be returned (if binary list is all 1s).
 
     Returns:
         float; A floating point number.
     """
-    # get the max value
-    max_binary = 2**len(binary_list) - 1
+    # Edge case for empty binary_list
+    if binary_list == []:
+        # With 0 bits, only one value can be represented,
+        # and we default to lower_bound
+        return lower_bound
 
-    # convert the binary to an integer
-    integer = binary_to_int(binary_list, 0)
 
-    # convert the integer to a floating point
-    floating_point = float(integer) / max_binary
+    # A little bit of math gets us a floating point
+    # number between upper and lower bound
+    # We look at the relative position of
+    # the integer corresponding to our binary list
+    # between the upper and lower bound,
+    # and offset that by lower bound
+    return ((
+        # Range between lower and upper bound
+        float(upper_bound - lower_bound)
+        # Divided by the maximum possible integer
+        / (2**len(binary_list) - 1)
+        # Times the integer represented by the given binary
+        * binary_to_int(binary_list))
+            # Plus the lower bound
+            + lower_bound)
 
-    # scale the floating point from min to max
-    scaled_floating_point = floating_point * maximum
-    scaled_floating_point -= floating_point * minimum
-    scaled_floating_point += minimum
 
-    return scaled_floating_point
+def binary_to_int(binary_list, lower_bound=0, upper_bound=None):
+    """Return the base 10 integer corresponding to a binary list.
+
+   The maximum value is determined by the number of bits in binary_list.
+
+    Args:
+        binary_list: list<int>; List of 0s and 1s.
+        lower_bound: Minimum value for output.
+            A binary list of 0s will have this value.
+        upper_bound: Maximum value for output.
+            If greater than this bound, we "bound back".
+            Ex. w/ upper_bound = 2: [0, 1, 2, 2, 1, 0]
+            Ex.
+                raw_integer = 11, upper_bound = 10, return = 10
+                raw_integer = 12, upper_bound = 10, return = 9
+
+    Returns:
+        int; Integer value of the binary input.
+    """
+    # Edge case for empty binary_list
+    if binary_list == []:
+        # With 0 bits, only one value can be represented,
+        # and we default to lower_bound
+        return lower_bound
+    else:
+        # The builtin int construction can take a base argument,
+        # but it requires a string,
+        # so we convert our binary list to a string
+        integer = int(''.join([str(bit) for bit in binary_list]), 2)
+
+    # Trim if over upper_bound
+    if (upper_bound is not None) and integer + lower_bound > upper_bound:
+        # Bounce back. Ex. w/ upper_bound = 2: [0, 1, 2, 2, 1, 0]
+        return upper_bound - (integer % (upper_bound - lower_bound + 1))
+    else:
+        # Not over upper_bound
+        return integer + lower_bound
 
 
 def avg(values):
     """Return the average of a set of values."""
     return sum(values) / len(values)
-
-
-def binary_size(num_values):
-    """Return the min number of bits to represet num_values."""
-    return int(math.ceil(math.log(num_values, 2)))

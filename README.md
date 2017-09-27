@@ -73,7 +73,12 @@ Important notes:
 
 For further usage details, see comprehensive doc strings.
 
-# Major Changes
+# Breaking Changes
+## 09/26/2017
+Renamed helpers.binary\_to\_int offset option to lower\_bound,
+and renamed helpers.binary\_to\_float minimum and maximum options to
+lower\_bound and upper\_bound respectively.
+
 ## 08/27/2017
 Moved a number of options from Optimizer to Optimizer.optimize
 

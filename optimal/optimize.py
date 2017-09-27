@@ -818,13 +818,13 @@ def _make_hyperparameter_decode_func(locked_values, meta_parameters):
             elif parameters['type'] == 'int':
                 value = helpers.binary_to_int(
                     binary,
-                    offset=parameters['min'],
+                    lower_bound=parameters['min'],
                     upper_bound=parameters['max'])
             elif parameters['type'] == 'float':
                 value = helpers.binary_to_float(
                     binary,
-                    minimum=parameters['min'],
-                    maximum=parameters['max'])
+                    lower_bound=parameters['min'],
+                    upper_bound=parameters['max'])
             else:
                 raise ValueError(
                     'Parameter type "{}" does not match known values'.format(
