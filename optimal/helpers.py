@@ -39,8 +39,10 @@ def binary_to_float(binary_list, lower_bound, upper_bound):
             The number of bits in this list determine the number of possible
             values between lower and upper bound.
             Increase the size of binary_list for more precise floating points.
-        lower_bound: The lowest value that can be return (if binary list is all 0s).
-        upper_bound: The highest value that can be returned (if binary list is all 1s).
+        lower_bound: Minimum value for output, inclusive.
+            A binary list of 0s will have this value.
+        upper_bound: Maximum value for output, inclusive.
+            A binary list of 1s will have this value.
 
     Returns:
         float; A floating point number.
@@ -72,14 +74,15 @@ def binary_to_float(binary_list, lower_bound, upper_bound):
 def binary_to_int(binary_list, lower_bound=0, upper_bound=None):
     """Return the base 10 integer corresponding to a binary list.
 
-   The maximum value is determined by the number of bits in binary_list.
+   The maximum value is determined by the number of bits in binary_list,
+   and upper_bound. The greater allowed by the two.
 
     Args:
         binary_list: list<int>; List of 0s and 1s.
-        lower_bound: Minimum value for output.
+        lower_bound: Minimum value for output, inclusive.
             A binary list of 0s will have this value.
-        upper_bound: Maximum value for output.
-            If greater than this bound, we "bound back".
+        upper_bound: Maximum value for output, inclusive.
+            If greater than this bound, we "bounce back".
             Ex. w/ upper_bound = 2: [0, 1, 2, 2, 1, 0]
             Ex.
                 raw_integer = 11, upper_bound = 10, return = 10
