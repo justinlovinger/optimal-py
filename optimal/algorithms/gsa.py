@@ -30,9 +30,10 @@ import numpy
 
 from optimal import optimize, common
 
-EPSILON = 0.0000001
+EPSILON = 1e-10
 
 
+# TODO: Optimize to use numpy array operations wherever possible
 class GSA(optimize.StandardOptimizer):
     """Gravitational Search Algorithm
 
@@ -61,13 +62,13 @@ class GSA(optimize.StandardOptimizer):
         super(GSA, self).__init__(solution_size, population_size)
 
         # set parameters for users problem
-        self._lower_bounds = lower_bounds
-        self._upper_bounds = upper_bounds
+        self._lower_bounds = numpy.array(lower_bounds)
+        self._upper_bounds = numpy.array(upper_bounds)
 
         # GSA variables
         self._grav_initial = grav_initial  # G_i in GSA paper
         self._grav_reduction_rate = grav_reduction_rate
-        self._velocities = None
+        self._velocity_matrix = None
         self.initialize()
 
         # Hyperparameter definitions
@@ -84,33 +85,32 @@ class GSA(optimize.StandardOptimizer):
 
     def initialize(self):
         # Initialize GSA variables
-        self._velocities = [[0.0] * self._solution_size] * \
-            self._population_size
+        self._velocity_matrix = numpy.zeros((self._population_size,
+                                             self._solution_size))
 
     def initial_population(self):
-        return _initial_population_gsa(self._population_size,
+        return _initial_gsa_population(self._population_size,
                                        self._solution_size, self._lower_bounds,
                                        self._upper_bounds)
 
     def next_population(self, population, fitnesses):
-        new_pop, new_velocities = _new_population_gsa(
-            population, fitnesses, self._velocities, self._lower_bounds,
+        new_pop, self._velocity_matrix = _new_population_gsa(
+            population, fitnesses, self._velocity_matrix, self._lower_bounds,
             self._upper_bounds, self._grav_initial, self._grav_reduction_rate,
             self.iteration, self._max_iterations)
-        self._velocities = new_velocities
         return new_pop
 
 
-def _initial_population_gsa(population_size, solution_size, lower_bounds,
+def _initial_gsa_population(population_size, solution_size, lower_bounds,
                             upper_bounds):
     """Create a random initial population of floating point values.
 
     Args:
         population_size: an integer representing the number of solutions in the population.
         problem_size: the number of values in each solution.
-        lower_bounds: a list, each value is a lower bound for the corresponding
+        lower_bounds: array; each value is a lower bound for the corresponding
                       part of the solution.
-        upper_bounds: a list, each value is a upper bound for the corresponding
+        upper_bounds: array; each value is a upper bound for the corresponding
                       part of the solution.
 
     Returns:
@@ -121,80 +121,67 @@ def _initial_population_gsa(population_size, solution_size, lower_bounds,
             "Lower and upper bounds much have a length equal to the problem size."
         )
 
-    return common.make_population(population_size, common.random_real_solution,
-                                  solution_size, lower_bounds, upper_bounds)
+
+    # population_size rows
+    # solution_size columns
+    # Each column in range of corresponding lower and upper bounds
+    return numpy.random.uniform(lower_bounds, upper_bounds, (population_size,
+                                                             solution_size))
 
 
-def _new_population_gsa(population, fitnesses, velocities, lower_bounds,
+def _new_population_gsa(population, fitnesses, velocity_matrix, lower_bounds,
                         upper_bounds, grav_initial, grav_reduction_rate,
                         iteration, max_iterations):
     """Generate a new population as given by GSA algorithm.
 
-    In GSA paper, grav_initial is G_i
+    In GSA paper, grav_initial is G_0
     """
+    # Make sure population is a numpy array
+    if not isinstance(population, numpy.ndarray):
+        population = numpy.array(population)
+
     # Update the gravitational constant, and the best and worst of the population
     # Calculate the mass and acceleration for each solution
     # Update the velocity and position of each solution
-    population_size = len(population)
-    solution_size = len(population[0])
+    population_size = population.shape[0]
+    solution_size = population.shape[1]
 
     # In GSA paper, grav is G
-    grav = _next_grav_gsa(grav_initial, grav_reduction_rate, iteration,
+    grav = _next_grav(grav_initial, grav_reduction_rate, iteration,
                           max_iterations)
-    masses = _get_masses(fitnesses)
-
-    # Create bundled solution with position and mass for the K best calculation
-    # Also store index to later check if two solutions are the same
-    # Sorted by solution fitness (mass)
-    solutions = [{
-        'pos': pos,
-        'mass': mass,
-        'index': i
-    } for i, (pos, mass) in enumerate(zip(population, masses))]
-    solutions.sort(key=lambda x: x['mass'], reverse=True)
+    mass_vector = _get_masses(fitnesses)
 
     # Get the force on each solution
     # Only the best K solutions apply force
     # K linearly decreases to 1
     num_best = int(population_size - (population_size - 1) *
                    (iteration / float(max_iterations)))
-    forces = []
-    for i in range(population_size):
-        force_vectors = []
-        for j in range(num_best):
-            # If it is not the same solution
-            if i != solutions[j]['index']:
-                force_vectors.append(
-                    _gsa_force(grav, masses[i], solutions[j]['mass'],
-                               population[i], solutions[j]['pos']))
-        forces.append(_gsa_total_force(force_vectors, solution_size))
+
+    force_matrix = _get_force_matrix(grav, population, mass_vector, num_best)
+
 
     # Get the acceleration of each solution
-    accelerations = []
-    for i in range(population_size):
-        accelerations.append(_gsa_acceleration(forces[i], masses[i]))
+    # By dividing each force vector by corresponding mass
+    acceleration_matrix = force_matrix / mass_vector.reshape(force_matrix.shape[0], 1)
 
     # Update the velocity of each solution
-    new_velocities = []
-    for i in range(population_size):
-        new_velocities.append(
-            _gsa_update_velocity(velocities[i], accelerations[i]))
+    # The GSA algorithm specifies that the new velocity for each dimension
+    # is a sum of a random fraction of its current velocity in that dimension,
+    # and its acceleration in that dimension
+    new_velocity_matrix = numpy.random.random(
+        velocity_matrix.shape) * velocity_matrix + acceleration_matrix
 
     # Create the new population
-    new_population = []
-    for i in range(population_size):
-        new_position = _gsa_update_position(population[i], new_velocities[i])
-        # Constrain to bounds
-        new_position = list(
-            numpy.clip(new_position, lower_bounds, upper_bounds))
+    new_population = numpy.clip(
+        # Move each position by its velocity vector
+        population + new_velocity_matrix,
+        # Clip to constrain to bounds
+        lower_bounds, upper_bounds)
 
-        new_population.append(new_position)
-
-    return new_population, new_velocities
+    return new_population, new_velocity_matrix
 
 
-def _next_grav_gsa(grav_initial, grav_reduction_rate, iteration,
-                   max_iterations):
+def _next_grav(grav_initial, grav_reduction_rate, iteration, max_iterations):
     """Calculate G as given by GSA algorithm.
 
     In GSA paper, grav is G
@@ -205,102 +192,76 @@ def _next_grav_gsa(grav_initial, grav_reduction_rate, iteration,
 
 def _get_masses(fitnesses):
     """Convert fitnesses into masses, as given by GSA algorithm."""
+    # Make sure fitnesses is a numpy array
+    if not isinstance(fitnesses, numpy.ndarray):
+        fitnesses = numpy.array(fitnesses)
+
     # Obtain constants
-    best_fitness = max(fitnesses)
-    worst_fitness = min(fitnesses)
+    best_fitness = numpy.max(fitnesses)
+    worst_fitness = numpy.min(fitnesses)
     fitness_range = best_fitness - worst_fitness
 
     # Calculate raw masses for each solution
-    raw_masses = []
-    for fitness in fitnesses:
-        # Epsilon is added to prevent divide by zero errors
-        raw_masses.append((fitness - worst_fitness) / (fitness_range + EPSILON)
-                          + EPSILON)
+    # By scaling each fitness to a positive value
+    masses = (fitnesses - worst_fitness) / (fitness_range + EPSILON) + EPSILON
 
-    # Normalize to obtain final mass for each solution
-    total_mass = sum(raw_masses)
-    masses = []
-    for mass in raw_masses:
-        masses.append(mass / total_mass)
+    # Normalize to a sum of 1 to obtain final mass for each solution
+    masses /= numpy.sum(masses)
 
     return masses
 
 
-def _gsa_force(grav, mass_i, mass_j, position_i, position_j):
+def _get_force_matrix(grav, position_matrix, mass_vector, num_best):
     """Gives the force of solution j on solution i.
 
-    Variable name in GSA paper given in ()
+    num_rows(position_matrix) == num_elements(mass_vector)
+    Each element in mass_vector corresponds to a row in position_matrix.
 
     args:
         grav: The gravitational constant. (G)
-        mass_i: The mass of solution i (derived from fitness). (M_i)
-        mass_j: The mass of solution j (derived from fitness). (M_j)
-        position_i: The position of solution i. (x_i)
-        position_j: The position of solution j. (x_j)
+        position_matrix: Each row is a parameter vector,
+            a.k.a. the position of a body body.
+        masses: Each element is the mass of corresponding
+            parameter vector (row) in position_matrix
+        num_best: How many bodies to apply their force
+            to each other body
 
     returns:
-        numpy.array; The force vector of solution j on solution i.
+        numpy.array; Matrix of total force on each body.
+            Each row is a force vector corresponding
+            to corresponding row / body in position_matrix.
     """
+    # TODO: Refactor to avoid calculating per position vector
 
-    position_diff = numpy.subtract(position_j, position_i)
-    distance = numpy.linalg.norm(position_diff)
+    # Get index of num_best highest masses (corresponds to rows in population)
+    k_best_indices = numpy.argpartition(mass_vector, -num_best)[-num_best:]
 
-    # The first 3 terms give the magnitude of the force
-    # The last term is a vector that provides the direction
-    # Epsilon prevents divide by zero errors
-    return grav * (mass_i * mass_j) / (distance + EPSILON) * position_diff
-
-
-def _gsa_total_force(force_vectors, vector_length):
-    """Return a randomly weighted sum of the force vectors.
-
-    args:
-        force_vectors: A list of force vectors on solution i.
-
-    returns:
-        numpy.array; The total force on solution i.
-    """
-    if len(force_vectors) == 0:
-        return [0.0] * vector_length
     # The GSA algorithm specifies that the total force in each dimension
     # is a random sum of the individual forces in that dimension.
-    # For this reason we sum the dimensions individually instead of simply
-    # using vec_a+vec_b
-    total_force = [0.0] * vector_length
-    for force_vec in force_vectors:
-        for i in range(vector_length):
-            total_force[i] += random.uniform(0.0, 1.0) * force_vec[i]
-    return total_force
+    force_matrix = []
+    for mass, position_vector in zip(mass_vector, position_matrix):
+        # NOTE: We can ignore position_vector being in k_best because
+        # difference will just be 0 vector
+        diff_matrix = position_matrix[k_best_indices] - position_vector
+        force_matrix.append(
+            # Scale result by gravity constant
+            grav *
+            # Add force vector applied to this body by each other body
+            numpy.sum(
+                # Multiply each force scalar by a random number
+                # in range [0, 1)
+                numpy.random.random(diff_matrix.shape) *
+                # Multiply each position difference vector by
+                # product of corresponding masses
+                ((mass_vector[k_best_indices] * mass) / (
+                    # divided by distance
+                    numpy.linalg.norm(diff_matrix, ord=2) + EPSILON
+                )).reshape(diff_matrix.shape[0], 1) *
+                # All multiplied by matrix of position difference vectors,
+                # giving direction of force vectors
+                diff_matrix,
+                # Sum along each force vector
+                axis=0))
+    force_matrix = numpy.array(force_matrix)
 
-
-def _gsa_acceleration(total_force, mass):
-    """Convert force to acceleration, given mass.
-
-    In GSA paper, mass is M_i
-    """
-    return numpy.divide(total_force, mass)
-
-
-def _gsa_update_velocity(velocity, acceleration):
-    """Stochastically update velocity given acceleration.
-
-    In GSA paper, velocity is v_i, acceleration is a_i
-    """
-
-    # The GSA algorithm specifies that the new velocity for each dimension
-    # is a sum of a random fraction of its current velocity in that dimension,
-    # and its acceleration in that dimension
-    # For this reason we sum the dimensions individually instead of simply
-    # using vec_a+vec_b
-    new_velocity = []
-    for vel, acc in zip(velocity, acceleration):
-        new_velocity.append(random.uniform(0.0, 1.0) * vel + acc)
-    return new_velocity
-
-
-def _gsa_update_position(position, velocity):
-    """Update position with given velocity.
-
-    In GSA paper, position is x_i, velocity is v_i
-    """
-    return numpy.add(position, velocity)
+    return force_matrix
