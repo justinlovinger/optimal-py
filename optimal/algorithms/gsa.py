@@ -45,8 +45,8 @@ class GSA(optimize.StandardOptimizer):
                  lower_bounds,
                  upper_bounds,
                  population_size=20,
-                 grav_initial=1.0,
-                 grav_reduction_rate=0.5):
+                 grav_initial=100.0,
+                 grav_reduction_rate=20.0):
         """Create an object that optimizes a given fitness function with GSA.
 
         Args:
@@ -74,13 +74,13 @@ class GSA(optimize.StandardOptimizer):
         # Hyperparameter definitions
         self._hyperparameters['_grav_initial'] = {
             'type': 'float',
-            'min': 0.0,
-            'max': 1.0
+            'min': 1e-10,
+            'max': 200.0
         }
         self._hyperparameters['_grav_reduction_rate'] = {
             'type': 'float',
-            'min': 0.0,
-            'max': 1.0
+            'min': 1e-10,
+            'max': 40.0
         }
 
     def initialize(self):
@@ -255,6 +255,7 @@ def _get_force_matrix(grav, position_matrix, mass_vector, num_best):
                 # product of corresponding masses
                 ((mass_vector[k_best_indices] * mass) / (
                     # divided by distance
+                    # (add EPSILON to prevent divide by 0)
                     numpy.linalg.norm(diff_matrix, ord=2) + EPSILON
                 )).reshape(diff_matrix.shape[0], 1) *
                 # All multiplied by matrix of position difference vectors,
