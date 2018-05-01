@@ -249,7 +249,6 @@ class Optimizer(object):
         # Initialize algorithm
         self._reset()
 
-        best_solution = {'solution': None, 'fitness': None}
         population = self.initial_population()
         try:
             # Begin optimization loop
@@ -267,15 +266,15 @@ class Optimizer(object):
                 # the global best
                 best_index, best_fitness = max(
                     enumerate(fitnesses), key=operator.itemgetter(1))
-                if best_fitness > best_solution['fitness']:
+                if best_fitness > self.best_fitness:
                     # Store the new best solution
-                    best_solution['fitness'] = best_fitness
-                    best_solution['solution'] = solutions[best_index]
+                    self.best_fitness = best_fitness
+                    self.best_solution = solutions[best_index]
 
                 if logging_func:
                     logging_func(self.iteration, population, solutions,
-                                 fitnesses, best_solution['solution'],
-                                 best_solution['fitness'])
+                                 fitnesses, self.best_solution,
+                                 self.best_fitness)
 
                 # Break if solution found
                 if finished:
@@ -292,10 +291,6 @@ class Optimizer(object):
 
                 # Continue optimizing
                 population = self.next_population(population, fitnesses)
-
-            # Store best internally, before returning
-            self.best_solution = best_solution['solution']
-            self.best_fitness = best_solution['fitness']
 
         finally:
             # Clear caches
