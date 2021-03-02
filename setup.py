@@ -33,5 +33,5 @@ setup(
     keywords=['optimization', 'metaheuristic', 'genetic algorithm', 'GA',
               'gravitational search algorithm', 'GSA', 'cross entropy'],
 
-    url='https://github.com/JustinLovinger/Optimal',
+    url='https://github.com/JustinLovinger/optimal',
 )

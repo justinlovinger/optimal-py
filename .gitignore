@@ -161,3 +161,8 @@ $RECYCLE.BIN/
 
 # Python compiled files
 *.pyc
+
+# =========================
+# Nix
+# =========================
+/result
