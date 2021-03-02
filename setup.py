@@ -14,7 +14,7 @@ except (ImportError, OSError, IOError):
 
 setup(
     name='optimal',
-    version='0.2.0',
+    version='0.2.1',
     packages=['optimal', 'optimal.algorithms'],
     # Include example and test files
     package_data={'optimal': ['examples/*.py', 'tests/*.py', 'tests/algorithms/*.py']},

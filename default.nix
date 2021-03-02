@@ -8,7 +8,7 @@ let
   pythonPackages = pkgs.python2Packages;
 in pkgs.pythonPackages.buildPythonPackage {
   pname = "optimal";
-  version = "0.2.0";
+  version = "0.2.1";
   src = pkgs.lib.cleanSource ./.;
 
   checkInputs = with pythonPackages; [ pytest ];
